@@ -33,6 +33,7 @@ def get_matchup(move_type, target_type1, target_type2):
 	#TODO: Add this
 	return 1
 
+
 def calculate_stat(base_stat, level, iv, is_hp=False):
 	'''Calculate a single Pokemon stat'''
 	if not(is_hp):
@@ -52,6 +53,22 @@ def get_stats(base_stats, level, iv):
 	calc_stats["SPD"] = calculate_stat(base_stats["SPD"],level,iv["SPD"])
 	return calc_stats
 
+def calc_statmod(stat, mod):
+	'''Calculates the in-battle stats with modifiers'''
+	multipliers = {-6:25,-5:28,-4:33,-2:50,-1:66,0:100,1:150,2:200,3:250,4:300,5:350,6:400}
+	return (stat * (multipliers[mod]/100))
+	
+def accuracy_check(user, target, move):
+	prob_of_hit = int(move.accuracy * ((calc_statmod(100, user.accmod["ACC"]))/(calc_statmod(100, user.accmod["EVS"]*-1))))
+	prob_of_hit = prob_of_hit * 2.55
+	if prob_of_hit > 255:
+		prob_of_hit = 255
+	if random.randint(0,255) < prob_of_hit:
+		return True
+	else:
+		return False
+	
+	
 class Pokemon:
 	def __init__(self, name):
 		pkm_data = get_pkm(name)
@@ -65,6 +82,7 @@ class Pokemon:
 		self.iv = {"ATK":15,"DEF":15,"SPD":15,"SPC":15}
 		self.stat = get_stats(self.basestat, self.level, self.iv)
 		self.hp = self.stat["HP"]
+		self.accmod = {"ACC":0,"EVS":0}
 		self.statmod = {"ATK":0,"DEF":0,"SPD":0,"SPC":0}
 		self.move1 = Attack(pkm_data[10])
 		self.move2 = Attack(pkm_data[11])
@@ -72,25 +90,28 @@ class Pokemon:
 		self.move4 = Attack(pkm_data[13])
 		
 	def attack(self, target, move):
-		level = self.level
-		if move.category == "PHYSICAL":
-			atk = self.stat["ATK"]
-			tdef = target.stat["DEF"]
+		if accuracy_check(self, target, move):
+			level = self.level
+			if move.category == "PHYSICAL":
+				atk = self.stat["ATK"]
+				tdef = target.stat["DEF"]
+			else:
+				atk = self.stat["SPC"]
+				tdef = target.stat["SPC"]
+			pwr = move.damage
+			rand = random.randint(217,255)
+			if move.type == self.type1 or move.type == self.type2:
+				STAB = 1.5
+			else:
+				STAB = 1
+			type_eff = get_matchup(move.type, target.type1, target.type2)
+			
+			calc_damage = int((((((2*level)//5+2)*pwr*atk//tdef)//50+2)*rand)//255*STAB*type_eff)
+			
+			target.hp -= calc_damage
+			print("{} used {}!".format(self.name, move.name))
 		else:
-			atk = self.stat["SPC"]
-			tdef = target.stat["SPC"]
-		pwr = move.damage
-		rand = random.randint(217,255)
-		if move.type == self.type1 or move.type == self.type2:
-			STAB = 1.5
-		else:
-			STAB = 1
-		type_eff = get_matchup(move.type, target.type1, target.type2)
-		
-		calc_damage = int((((((2*level)//5+2)*pwr*atk//tdef)//50+2)*rand)//255*STAB*type_eff)
-		
-		target.hp -= calc_damage
-		print("{} used {}!".format(self.name, move.name))
+			print("The attack missed!")
 		
 					
 class Attack:
@@ -128,7 +149,6 @@ print(squirtle.hp)
 charmander.attack(squirtle, charmander.move1)
 
 print(squirtle.hp)
-
 
 input()
 
