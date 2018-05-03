@@ -15,6 +15,7 @@ def get_pkm(name):
 	txtfile.close()
 	return pkm_dat
 
+
 def get_atk(name):
 	'''Retrieve Attack data such as power, accuracy, etc. from file'''
 	if name:
@@ -28,9 +29,10 @@ def get_atk(name):
 	else:
 		return None
 
+
 def get_matchup(move_type, target_type1, target_type2):
 	'''Looks up the type matchup and returns the appropriate damage multiplier'''
-	#TODO: Add this
+	# TODO: Add this
 	return 1
 
 
@@ -43,6 +45,7 @@ def calculate_stat(base_stat, level, iv, is_hp=False):
 		calc_stat = (((base_stat + hp_iv)*2)*level//100)+level+5
 	return calc_stat
 
+
 def get_stats(base_stats, level, iv):
 	'''Calculate and return all of a Pokemon's stats'''
 	calc_stats = {}
@@ -53,13 +56,15 @@ def get_stats(base_stats, level, iv):
 	calc_stats["SPD"] = calculate_stat(base_stats["SPD"],level,iv["SPD"])
 	return calc_stats
 
+
 def calc_statmod(stat, mod):
 	'''Calculates the in-battle stats with modifiers'''
 	multipliers = {-6:25,-5:28,-4:33,-2:50,-1:66,0:100,1:150,2:200,3:250,4:300,5:350,6:400}
 	return (stat * (multipliers[mod]/100))
-	
+
+
 def accuracy_check(user, target, move):
-	prob_of_hit = int(move.accuracy * ((calc_statmod(100, user.accmod["ACC"]))/(calc_statmod(100, user.accmod["EVS"]*-1))))
+	prob_of_hit = int(move.accuracy * ((calc_statmod(100, user.accmod["ACC"]))/(calc_statmod(100, target.accmod["EVS"]*-1))))
 	prob_of_hit = prob_of_hit * 2.55
 	if prob_of_hit > 255:
 		prob_of_hit = 255
@@ -67,7 +72,16 @@ def accuracy_check(user, target, move):
 		return True
 	else:
 		return False
-	
+
+
+def crit_check(user):
+	threshold = user.basestat["SPD"] // 2
+	if threshold > 255:
+		threshold = 255
+	if random.randint(0,255) < threshold:
+		return True
+	else:
+		return False
 	
 class Pokemon:
 	def __init__(self, name):
@@ -92,6 +106,8 @@ class Pokemon:
 	def attack(self, target, move):
 		if accuracy_check(self, target, move):
 			level = self.level
+			if crit_check(self):
+				level = level * 2
 			if move.category == "PHYSICAL":
 				atk = self.stat["ATK"]
 				tdef = target.stat["DEF"]
@@ -133,9 +149,11 @@ class Attack:
 				self.maxpp = int(atk_data[6])
 			self.pp = self.maxpp
 		else:
-			return None
-			
+			self.name = None
 
+	def __bool__(self):
+		if self.name is None:
+			return False
 	
 
 charmander = Pokemon("charmander")
@@ -150,12 +168,14 @@ charmander.attack(squirtle, charmander.move1)
 
 print(squirtle.hp)
 
+
+
 input()
 
 
 
-		
-	
+
+
 	
 
 	
