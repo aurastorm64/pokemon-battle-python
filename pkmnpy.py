@@ -1,6 +1,14 @@
 '''POKeMON BATTLE TEST'''
 import random
 
+
+stat_abbreviation = {"ATK":"ATTACK", "DEF":"DEFENSE","SPD":"SPEED","SPC":"SPECIAL","ACC":"ACCURACY","EVS":"EVASION"}
+
+
+def dialogue(string):
+	print(string)
+
+
 def get_pkm(name):
 	'''Retrieve Pokemon data such as name, moves, etc. from file'''
 	pkm_dat = []
@@ -64,7 +72,7 @@ def calc_statmod(stat, mod):
 
 
 def accuracy_check(user, target, move):
-	prob_of_hit = int(move.accuracy * ((calc_statmod(100, user.accmod["ACC"]))/(calc_statmod(100, target.accmod["EVS"]*-1))))
+	prob_of_hit = int(move.accuracy * ((calc_statmod(100, user.statmod["ACC"]))/(calc_statmod(100, target.statmod["EVS"]*-1))))
 	prob_of_hit = prob_of_hit * 2.55
 	if prob_of_hit > 255:
 		prob_of_hit = 255
@@ -96,8 +104,7 @@ class Pokemon:
 		self.iv = {"ATK":15,"DEF":15,"SPD":15,"SPC":15}
 		self.stat = get_stats(self.basestat, self.level, self.iv)
 		self.hp = self.stat["HP"]
-		self.accmod = {"ACC":0,"EVS":0}
-		self.statmod = {"ATK":0,"DEF":0,"SPD":0,"SPC":0}
+		self.statmod = {"ATK":0,"DEF":0,"SPD":0,"SPC":0,"ACC":0,"EVS":0}
 		self.move1 = Attack(pkm_data[10])
 		self.move2 = Attack(pkm_data[11])
 		self.move3 = Attack(pkm_data[12])
@@ -105,29 +112,58 @@ class Pokemon:
 		
 	def attack(self, target, move):
 		if accuracy_check(self, target, move):
-			level = self.level
-			if crit_check(self):
-				level = level * 2
-			if move.category == "PHYSICAL":
-				atk = self.stat["ATK"]
-				tdef = target.stat["DEF"]
+			dialogue("{} used {}!".format(self.name, move.name))
+			if move.category != "STATUS":
+				level = self.level
+				if crit_check(self):
+					level = level * 2
+				if move.category == "PHYSICAL":
+					atk = calc_statmod(self.stat["ATK"], self.statmod["ATK"])
+					tdef = calc_statmod(target.stat["DEF"], target.statmod["DEF"])
+				else:
+					atk = calc_statmod(self.stat["SPC"], self.statmod["SPC"])
+					tdef = calc_statmod(target.stat["SPC"], target.statmod["SPC"])
+				pwr = move.damage
+				rand = random.randint(217,255)
+				if move.type == self.type1 or move.type == self.type2:
+					STAB = 1.5
+				else:
+					STAB = 1
+				type_eff = get_matchup(move.type, target.type1, target.type2)
+
+				calc_damage = int((((((2*level)//5+2)*pwr*atk//tdef)//50+2)*rand)//255*STAB*type_eff)
+
+				target.hp -= calc_damage
 			else:
-				atk = self.stat["SPC"]
-				tdef = target.stat["SPC"]
-			pwr = move.damage
-			rand = random.randint(217,255)
-			if move.type == self.type1 or move.type == self.type2:
-				STAB = 1.5
-			else:
-				STAB = 1
-			type_eff = get_matchup(move.type, target.type1, target.type2)
-			
-			calc_damage = int((((((2*level)//5+2)*pwr*atk//tdef)//50+2)*rand)//255*STAB*type_eff)
-			
-			target.hp -= calc_damage
-			print("{} used {}!".format(self.name, move.name))
+				if move.target == "TARGET":
+					if move.mod < 0:
+						if target.statmod[move.targetstat] > -6:
+							target.statmod[move.targetstat] += move.mod
+							dialogue("{}'s {} fell!".format(target.name, stat_abbreviation[move.targetstat]))
+						else:
+							dialogue("Nothing happened!")
+					else:
+						if target.statmod[move.targetstat] < 6:
+							target.statmod[move.targetstat] += move.mod
+							dialogue("{}'s {} rose!".format(target.name, stat_abbreviation[move.targetstat]))
+						else:
+							dialogue("Nothing happened!")
+				else:
+					if move.mod < 0:
+						if self.statmod[move.targetstat] > -6:
+							self.statmod[move.targetstat] += move.mod
+							dialogue("{}'s {} fell!".format(self.name, stat_abbreviation[move.targetstat]))
+						else:
+							dialogue("Nothing happened!")
+					else:
+						if self.statmod[move.targetstat] < 6:
+							self.statmod[move.targetstat] += move.mod
+							dialogue("{}'s {} rose!".format(self.name, stat_abbreviation[move.targetstat]))
+						else:
+							dialogue("Nothing happened!")
 		else:
-			print("The attack missed!")
+			dialogue("The attack missed!")
+		move.pp -= 1
 		
 					
 class Attack:
@@ -147,6 +183,7 @@ class Attack:
 				self.targetstat = atk_data[4]
 				self.accuracy = int(atk_data[5])
 				self.maxpp = int(atk_data[6])
+				self.mod = int(atk_data[7])
 			self.pp = self.maxpp
 		else:
 			self.name = None
@@ -167,6 +204,11 @@ print(squirtle.hp)
 charmander.attack(squirtle, charmander.move1)
 
 print(squirtle.hp)
+
+print(charmander.statmod["DEF"])
+squirtle.attack(charmander, squirtle.move2)
+
+print(charmander.statmod["DEF"])
 
 
 
