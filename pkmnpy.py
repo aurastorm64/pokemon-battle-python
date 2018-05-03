@@ -67,7 +67,7 @@ def get_stats(base_stats, level, iv):
 
 def calc_statmod(stat, mod):
 	'''Calculates the in-battle stats with modifiers'''
-	multipliers = {-6:25,-5:28,-4:33,-2:50,-1:66,0:100,1:150,2:200,3:250,4:300,5:350,6:400}
+	multipliers = {-6:25,-5:28,-4:33,-3:40,-2:50,-1:66,0:100,1:150,2:200,3:250,4:300,5:350,6:400}
 	return (stat * (multipliers[mod]/100))
 
 
@@ -90,7 +90,24 @@ def crit_check(user):
 		return True
 	else:
 		return False
-	
+
+
+def opponent_move(user, target):
+	moves = []
+	for move in user.movenames:
+		if not move is None:
+			moves.append(move)
+	opponent_choice = random.choice(moves)
+	if opponent_choice == user.move1.name and user.move1.name:
+		user.attack(target, user.move1)
+	elif opponent_choice == user.move2.name and user.move2.name:
+		user.attack(target, user.move2)
+	elif opponent_choice == user.move3.name and user.move3.name:
+		user.attack(target, user.move3)
+	elif opponent_choice == user.move4.name and user.move4.name:
+		user.attack(opponent_pkm, user.move4)
+
+
 class Pokemon:
 	def __init__(self, name):
 		pkm_data = get_pkm(name)
@@ -192,7 +209,7 @@ class Attack:
 		if self.name is None:
 			return False
 	
-
+'''
 charmander = Pokemon("charmander")
 print(charmander.name)
 print(charmander.move1.name)
@@ -209,6 +226,42 @@ print(charmander.statmod["DEF"])
 squirtle.attack(charmander, squirtle.move2)
 
 print(charmander.statmod["DEF"])
+'''
+
+# BATTLE TEST
+
+player_pkm = Pokemon("charmander")
+opponent = "BLUE"
+opponent_pkm = Pokemon("squirtle")
+
+dialogue("{} wants to fight!".format(opponent))
+dialogue("{} sent out {}!".format(opponent, opponent_pkm.name))
+dialogue("Go! {}".format(player_pkm.name))
+
+while True:
+	player_choice = input("{} {} {} {}".format(player_pkm.move1.name, player_pkm.move2.name, player_pkm.move3.name, player_pkm.move4.name))
+	if player_choice.upper() == player_pkm.move1.name and player_pkm.move1.name:
+		player_pkm.attack(opponent_pkm, player_pkm.move1)
+	elif player_choice.upper() == player_pkm.move2.name and player_pkm.move2.name:
+		player_pkm.attack(opponent_pkm, player_pkm.move2)
+	elif player_choice.upper() == player_pkm.move3.name and player_pkm.move3.name:
+		player_pkm.attack(opponent_pkm, player_pkm.move3)
+	elif player_choice.upper() == player_pkm.move4.name and player_pkm.move4.name:
+		player_pkm.attack(opponent_pkm, player_pkm.move4)
+
+	print("{}: {}/{}".format(opponent_pkm.name, opponent_pkm.hp, opponent_pkm.stat["HP"]))
+
+	if opponent_pkm.hp <= 0:
+		dialogue("{} fainted!".format(opponent_pkm.name))
+		break
+
+	opponent_move(opponent_pkm, player_pkm)
+
+	if player_pkm.hp <= 0:
+		dialogue("{} fainted!".format(player_pkm.name))
+		break
+
+	print("{}: {}/{}".format(player_pkm.name, player_pkm.hp, player_pkm.stat["HP"]))
 
 
 
