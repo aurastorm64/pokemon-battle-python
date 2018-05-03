@@ -1,13 +1,16 @@
 '''POKeMON BATTLE TEST'''
-import random
+import random, sys, time
 
 
 stat_abbreviation = {"ATK":"ATTACK", "DEF":"DEFENSE","SPD":"SPEED","SPC":"SPECIAL","ACC":"ACCURACY","EVS":"EVASION"}
 
 
 def dialogue(string):
-	print(string)
-
+	for char in string:
+		print(char, end="")
+		sys.stdout.flush()
+		time.sleep(0.05)
+	print()
 
 def get_pkm(name):
 	'''Retrieve Pokemon data such as name, moves, etc. from file'''
@@ -181,6 +184,10 @@ class Pokemon:
 		else:
 			dialogue("The attack missed!")
 		move.pp -= 1
+		if self.hp < 0:
+			self.hp = 0
+		if target.hp < 0:
+			target.hp = 0
 		
 					
 class Attack:
@@ -239,7 +246,11 @@ dialogue("{} sent out {}!".format(opponent, opponent_pkm.name))
 dialogue("Go! {}".format(player_pkm.name))
 
 while True:
-	player_choice = input("{} {} {} {}".format(player_pkm.move1.name, player_pkm.move2.name, player_pkm.move3.name, player_pkm.move4.name))
+	for move in player_pkm.movenames:
+		if not move is None:
+			print("{} ".format(move), end='')
+			sys.stdout.flush()
+	player_choice = input(">")
 	if player_choice.upper() == player_pkm.move1.name and player_pkm.move1.name:
 		player_pkm.attack(opponent_pkm, player_pkm.move1)
 	elif player_choice.upper() == player_pkm.move2.name and player_pkm.move2.name:
@@ -251,21 +262,24 @@ while True:
 
 	print("{}: {}/{}".format(opponent_pkm.name, opponent_pkm.hp, opponent_pkm.stat["HP"]))
 
-	if opponent_pkm.hp <= 0:
+	if opponent_pkm.hp == 0:
 		dialogue("{} fainted!".format(opponent_pkm.name))
+		dialogue("{} was defeated!".format(opponent))
 		break
 
 	opponent_move(opponent_pkm, player_pkm)
 
-	if player_pkm.hp <= 0:
+	if player_pkm.hp == 0:
 		dialogue("{} fainted!".format(player_pkm.name))
+		dialogue("PLAYER is out of usable Pokemon!")
+		dialogue("PLAYER blacked out!")
 		break
 
 	print("{}: {}/{}".format(player_pkm.name, player_pkm.hp, player_pkm.stat["HP"]))
 
 
 
-input()
+time.sleep(1)
 
 
 
