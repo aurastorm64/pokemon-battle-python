@@ -6,6 +6,7 @@ stat_abbreviation = {"ATK":"ATTACK", "DEF":"DEFENSE","SPD":"SPEED","SPC":"SPECIA
 
 
 def dialogue(string):
+	'''Prints a message one character at a time'''
 	for char in string:
 		print(char, end="")
 		sys.stdout.flush()
@@ -43,8 +44,75 @@ def get_atk(name):
 
 def get_matchup(move_type, target_type1, target_type2):
 	'''Looks up the type matchup and returns the appropriate damage multiplier'''
-	# TODO: Add this
-	return 1
+
+	multiplier = 1
+	strong_against = {"NORMAL": [],
+					  "FIGHTING": ["NORMAL", "ROCK", "ICE"],
+					  "FLYING": ["FIGHTING", "BUG", "GRASS"],
+					  "POISON": ["BUG", "GRASS"],
+					  "GROUND": ["POISON", "ROCK", "FIRE", "ELECTRIC"],
+					  "ROCK": ["FLYING", "BUG", "FIRE", "ICE"],
+					  "BUG": ["POISON", "GRASS", "PSYCHIC"],
+					  "GHOST": ["GHOST"],
+					  "FIRE": ["BUG", "GRASS", "ICE"],
+					  "WATER": ["GROUND", "ROCK", "FIRE"],
+					  "GRASS": ["GROUND", "ROCK", "WATER"],
+					  "ELECTRIC": ["FLYING", "WATER"],
+					  "PSYCHIC": ["FIGHTING", "POISON"],
+					  "ICE": ["FLYING", "GROUND", "GRASS", "DRAGON"],
+					  "DRAGON": ["DRAGON"]}
+
+	weak_against = {"NORMAL": ["ROCK"],
+					"FIGHTING": ["FLYING", "POISON", "BUG", "PSYCHIC"],
+					"FLYING": ["ROCK", "ELECTRIC"],
+					"POISON": ["POISON", "GROUND", "ROCK", "GHOST"],
+					"GROUND": ["BUG", "GRASS"],
+					"ROCK": ["FIGHTING", "ROCK"],
+					"BUG": ["FIGHTING", "FLYING", "GHOST", "FIRE"],
+					"GHOST": [],
+					"FIRE": ["ROCK", "FIRE", "WATER", "DRAGON"],
+					"WATER": ["WATER", "GRASS", "DRAGON"],
+					"GRASS": ["FLYING", "POISON", "BUG", "FIRE", "GRASS", "DRAGON"],
+					"ELECTRIC": ["GRASS", "ELECTRIC", "DRAGON"],
+					"PSYCHIC": ["PSYCHIC"],
+					"ICE": ["WATER", "ICE"],
+					"DRAGON": []}
+
+	no_effect = {'NORMAL': ['GHOST'],
+				 'FIGHTING': ['GHOST'],
+				 'FLYING': [],
+				 'POISON': [],
+				 'GROUND': ['FLYING'],
+				 'ROCK': [],
+				 'BUG': [],
+				 'GHOST': ['NORMAL', 'PSYCHIC'],
+				 'FIRE': [],
+				 'WATER': [],
+				 'GRASS': [],
+				 'ELECTRIC': ['GROUND'],
+				 'PSYCHIC': [],
+				 'ICE': [],
+				 'DRAGON': []}
+
+	if target_type1 in strong_against[move_type]:
+		multiplier *= 2
+	if target_type2 in strong_against[move_type]:
+		multiplier *= 2
+
+	if target_type1 in weak_against[move_type]:
+		multiplier /= 2
+	if target_type2 in weak_against[move_type]:
+		multiplier /= 2
+
+	if target_type1 in no_effect[move_type] or target_type2 in no_effect[move_type]:
+		multiplier = 0
+
+	if multiplier > 1:
+		dialogue("It's super effective!")
+	elif multiplier < 1:
+		dialogue("It's not very effective...")
+
+	return multiplier
 
 
 def calculate_stat(base_stat, level, iv, is_hp=False):
@@ -75,6 +143,7 @@ def calc_statmod(stat, mod):
 
 
 def accuracy_check(user, target, move):
+	'''Determine whether or not a move hits'''
 	prob_of_hit = int(move.accuracy * ((calc_statmod(100, user.statmod["ACC"]))/(calc_statmod(100, target.statmod["EVS"]*-1))))
 	prob_of_hit = prob_of_hit * 2.55
 	if prob_of_hit > 255:
@@ -86,6 +155,7 @@ def accuracy_check(user, target, move):
 
 
 def crit_check(user):
+	'''Determine whether or not a move lands a critical hit'''
 	threshold = user.basestat["SPD"] // 2
 	if threshold > 255:
 		threshold = 255
@@ -121,7 +191,7 @@ class Pokemon:
 		self.basestat = {"HP":pkm_data[4],"ATK":pkm_data[5],"DEF":pkm_data[6],"SPC":pkm_data[7],"SPD":pkm_data[8]}
 		self.movenames = [pkm_data[10], pkm_data[11], pkm_data[12], pkm_data[13]]
 		self.level = 5
-		self.iv = {"ATK":15,"DEF":15,"SPD":15,"SPC":15}
+		self.iv = {"ATK": random.randint(0, 15), "DEF": random.randint(0, 15), "SPD": random.randint(0, 15),"SPC": random.randint(0, 15)}
 		self.stat = get_stats(self.basestat, self.level, self.iv)
 		self.hp = self.stat["HP"]
 		self.statmod = {"ATK":0,"DEF":0,"SPD":0,"SPC":0,"ACC":0,"EVS":0}
@@ -136,6 +206,7 @@ class Pokemon:
 			if move.category != "STATUS":
 				level = self.level
 				if crit_check(self):
+					dialogue("Critical hit!")
 					level = level * 2
 				if move.category == "PHYSICAL":
 					atk = calc_statmod(self.stat["ATK"], self.statmod["ATK"])
@@ -237,13 +308,31 @@ print(charmander.statmod["DEF"])
 
 # BATTLE TEST
 
-player_pkm = Pokemon("charmander")
+print("BULBASAUR, CHARMANDER, SQUIRTLE", end="")
+player_choice = input(" >")
 opponent = "BLUE"
-opponent_pkm = Pokemon("squirtle")
+if player_choice.lower() == "charmander":
+	player_pkm = Pokemon(player_choice.lower())
+	opponent_pkm = Pokemon("squirtle")
+elif player_choice.lower() == "squirtle":
+	player_pkm = Pokemon(player_choice.lower())
+	opponent_pkm = Pokemon("bulbasaur")
+elif player_choice.lower() == "bulbasaur":
+	player_pkm = Pokemon(player_choice.lower())
+	opponent_pkm = Pokemon("charmander")
+elif player_choice.lower() == "dev":
+	player_choice = input("What Pokemon do you choose? >")
+	player_pkm = Pokemon(player_choice.lower())
+	player_choice = input("What Pokemon to battle? >")
+	opponent_pkm = Pokemon(player_choice.lower())
+else:
+	opponent_pkm = Pokemon("eevee")
+	player_pkm = Pokemon("pikachu")
 
 dialogue("{} wants to fight!".format(opponent))
 dialogue("{} sent out {}!".format(opponent, opponent_pkm.name))
 dialogue("Go! {}".format(player_pkm.name))
+
 
 while True:
 	for move in player_pkm.movenames:
