@@ -1,5 +1,10 @@
 '''POKeMON BATTLE TEST'''
-import random, sys, time, click
+import random, sys, time, click, os
+
+if os.name == 'nt':
+	is_windows = True
+else:
+	is_windows = False
 
 
 stat_abbreviation = {"ATK":"ATTACK", "DEF":"DEFENSE","SPD":"SPEED","SPC":"SPECIAL","ACC":"ACCURACY","EVS":"EVASION"}
@@ -16,33 +21,53 @@ def dialogue(string):
 
 def choice_cursor(choices):
 	'''Creates a cursor selection from different options'''
+
 	choices_new = []
 	for choice in choices:
 		if not choice is None:
 			choices_new.append(choice)
 	selection = 0
 
-	while True:
-		for i in range(len(choices_new)):
-			if i == selection:
-				print(">", end='')
-			else:
-				print(" ", end='')
-			print('{}, '.format(choices_new[i]), end='')
-		print('\b\b ', end='')
+	# Apparently the way the cursor selection is done isn't supported in Windows, so if running on Windows, the old selection will be used instead
+	if is_windows:
+		for choice in choices_new:
+			print('{}, '.format(choice), end='')
+		print('\b\b ',end='')
 		sys.stdout.flush()
+		while True:
+			selection = input('>')
+			if selection in choices_new:
+				break
+			elif selection.lower() == 'quit' or selection.lower() == 'exit':
+				print("Exiting.")
+				sys.exit()
+			else:
+				print("Invalid choice.")
+		return selection
+		
+	
+	else:
+		while True:
+			for i in range(len(choices_new)):
+				if i == selection:
+					print(">", end='')
+				else:
+					print(" ", end='')
+				print('{}, '.format(choices_new[i]), end='')
+			print('\b\b ', end='')
+			sys.stdout.flush()
 
-		key = click.getchar()
-		if key == "\x1b[D":
-			selection = (selection - 1) % len(choices_new)
-			print("\r", end="")
-		elif key == "\x1b[C":
-			selection = (selection + 1) % len(choices_new)
-			print("\r", end="")
-		elif key == "\x0d":
-			break
-	print()
-	return(choices_new[selection])
+			key = click.getchar()
+			if key == "\x1b[D":
+				selection = (selection - 1) % len(choices_new)
+				print("\r", end="")
+			elif key == "\x1b[C":
+				selection = (selection + 1) % len(choices_new)
+				print("\r", end="")
+			elif key == "\x0d":
+				break
+		print()
+		return(choices_new[selection])
 
 
 def get_pkm(name):
