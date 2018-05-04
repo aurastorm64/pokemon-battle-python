@@ -1,5 +1,5 @@
 '''POKeMON BATTLE TEST'''
-import random, sys, time
+import random, sys, time, click
 
 
 stat_abbreviation = {"ATK":"ATTACK", "DEF":"DEFENSE","SPD":"SPEED","SPC":"SPECIAL","ACC":"ACCURACY","EVS":"EVASION"}
@@ -12,6 +12,38 @@ def dialogue(string):
 		sys.stdout.flush()
 		time.sleep(0.05)
 	print()
+
+
+def choice_cursor(choices):
+	'''Creates a cursor selection from different options'''
+	choices_new = []
+	for choice in choices:
+		if not choice is None:
+			choices_new.append(choice)
+	selection = 0
+
+	while True:
+		for i in range(len(choices_new)):
+			if i == selection:
+				print(">", end='')
+			else:
+				print(" ", end='')
+			print('{}, '.format(choices_new[i]), end='')
+		print('\b\b ', end='')
+		sys.stdout.flush()
+
+		key = click.getchar()
+		if key == "\x1b[D":
+			selection = (selection - 1) % len(choices_new)
+			print("\r", end="")
+		elif key == "\x1b[C":
+			selection = (selection + 1) % len(choices_new)
+			print("\r", end="")
+		elif key == "\x0d":
+			break
+	print()
+	return(choices_new[selection])
+
 
 def get_pkm(name):
 	'''Retrieve Pokemon data such as name, moves, etc. from file'''
@@ -308,8 +340,7 @@ print(charmander.statmod["DEF"])
 
 # BATTLE TEST
 
-print("BULBASAUR, CHARMANDER, SQUIRTLE", end="")
-player_choice = input(" >")
+player_choice = choice_cursor(['BULBASAUR','CHARMANDER','SQUIRTLE', 'PIKACHU'])
 opponent = "BLUE"
 if player_choice.lower() == "charmander":
 	player_pkm = Pokemon(player_choice.lower())
@@ -335,11 +366,7 @@ dialogue("Go! {}".format(player_pkm.name))
 
 
 while True:
-	for move in player_pkm.movenames:
-		if not move is None:
-			print("{} ".format(move), end='')
-			sys.stdout.flush()
-	player_choice = input(">")
+	player_choice = choice_cursor(player_pkm.movenames)
 	if player_choice.upper() == player_pkm.move1.name and player_pkm.move1.name:
 		player_pkm.attack(opponent_pkm, player_pkm.move1)
 	elif player_choice.upper() == player_pkm.move2.name and player_pkm.move2.name:
