@@ -3,19 +3,25 @@ import random, sys, time, click, os
 
 if os.name == 'nt':
 	is_windows = True
+	print("Using Windows. Cursor selection not supported.")
 else:
 	is_windows = False
 
+if sys.stdout.isatty():
+	in_terminal = True
+else:
+	in_terminal = False
 
 stat_abbreviation = {"ATK":"ATTACK", "DEF":"DEFENSE","SPD":"SPEED","SPC":"SPECIAL","ACC":"ACCURACY","EVS":"EVASION"}
-
-
+effect_message = {"FRZ":"{} was frozen solid!","BRN":"{} was burned!","PSN":"{} was poisoned!","SLP":"{} fell asleep!","PAR":"{} is paralyzed! It may not attack!"}
+effect_message2 = {"FRZ":"frozen","BRN":"burned","PSN":"poisoned","SLP":"asleep","PAR":"paralyzed"}
 def dialogue(string):
 	'''Prints a message one character at a time'''
 	for char in string:
 		print(char, end="")
 		sys.stdout.flush()
 		time.sleep(0.05)
+			
 	print()
 
 
@@ -36,7 +42,7 @@ def choice_cursor(choices):
 		sys.stdout.flush()
 		while True:
 			selection = input('>')
-			if selection in choices_new:
+			if selection in choices_new or selection.lower() == "dev":
 				break
 			elif selection.lower() == 'quit' or selection.lower() == 'exit':
 				print("Exiting.")
@@ -64,6 +70,9 @@ def choice_cursor(choices):
 			elif key == "\x1b[C":
 				selection = (selection + 1) % len(choices_new)
 				print("\r", end="")
+			elif key == "q":
+				print()
+				sys.exit()
 			elif key == "\x0d":
 				break
 		print()
@@ -83,6 +92,32 @@ def get_pkm(name):
 			pkm_dat.append(line.strip())
 	txtfile.close()
 	return pkm_dat
+
+
+def moves_for_level(pkm_data, level):
+	'''Parse the raw move data from a Pokemon's .pkm file and return the four moves it learned last'''
+	moves_parsed = []
+	for i in range(10,len(pkm_data)):
+		moves_parsed.append(eval(pkm_data[i]))
+	moves_up_to_level = []
+	for move in moves_parsed:
+		if move[1] <= level:
+			moves_up_to_level.append(move[0])
+	moves_for_level = []
+	if len(moves_up_to_level) < 4:
+		for i in range(4):
+			if i < len(moves_up_to_level):
+				moves_for_level.append(moves_up_to_level[i])
+			else:
+				moves_for_level.append(None)
+	else:
+		moves_for_level = [moves_up_to_level[-4],moves_up_to_level[-3],moves_up_to_level[-2],moves_up_to_level[-1]]
+	return moves_for_level
+
+
+
+
+
 
 
 def get_atk(name):
@@ -201,14 +236,17 @@ def calc_statmod(stat, mod):
 
 def accuracy_check(user, target, move):
 	'''Determine whether or not a move hits'''
-	prob_of_hit = int(move.accuracy * ((calc_statmod(100, user.statmod["ACC"]))/(calc_statmod(100, target.statmod["EVS"]*-1))))
-	prob_of_hit = prob_of_hit * 2.55
-	if prob_of_hit > 255:
-		prob_of_hit = 255
-	if random.randint(0,255) < prob_of_hit:
+	if move.accuracy == "-":
 		return True
 	else:
-		return False
+		prob_of_hit = int(move.accuracy * ((calc_statmod(100, user.statmod["ACC"]))/(calc_statmod(100, target.statmod["EVS"]*-1))))
+		prob_of_hit = prob_of_hit * 2.55
+		if prob_of_hit > 255:
+			prob_of_hit = 255
+		if random.randint(0,255) < prob_of_hit:
+			return True
+		else:
+			return False
 
 
 def crit_check(user):
@@ -222,20 +260,127 @@ def crit_check(user):
 		return False
 
 
+def probability_check(probability):
+	'''Determine whether or not a move's secondary effect activates'''
+	if random.randint(0,255) <= probability * 2.55:
+		return True
+	else:
+		return False
+		
+		
+def player_turn(player_pkm):
+	can_attack = True
+	if player_pkm.status_effect == "FRZ":
+		dialogue("{} is frozen solid!".format(player_pkm.name))
+		can_attack = False
+	elif player_pkm.status_effect == "PAR":
+		if probability_check(25):
+			dialogue("{} is paralyzed!".format(player_pkm.name))
+			can_attack = False
+	elif player_pkm.status_effect == "SLP":
+		if player_pkm.effect_counter == 0:
+			dialogue("{} woke up!".format(player_pkm.name))
+			player_pkm.status_effect = None
+		else:
+			dialogue("{} is fast asleep!".format(player_pkm.name))	
+			player_pkm.effect_counter -= 1
+		can_attack = False
+	elif player_pkm.status_effect == "CON":
+		if player_pkm.effect_counter == 0:
+			dialogue("{} is no longer confused!".format(player_pkm.name))
+			player_pkm.status_effect = None
+		else:
+			dialogue("{} is confused!".format(player_pkm.name))
+			if probability_check(50):
+				atk = calc_statmod(player_pkm.stat["ATK"], player_pkm.statmod["ATK"])
+				tdef = calc_statmod(player_pkm.stat["DEF"], player_pkm.statmod["DEF"])
+				rand = random.randint(217,255)
+				calc_damage = int((((((2*player_pkm.level)//5+2)*40*atk//tdef)//50+2)*rand)//255)
+				player_pkm.hp -= calc_damage
+				dialogue("It attacked itself in its confusion!")
+				can_attack = False
+	
+	if player_pkm.status_effect == "BRN":
+		burnt = True
+	else:
+		burnt = False
+		
+	if can_attack:
+		if player_pkm.multiturn_move != None and player_pkm.multiturn == 1:
+			player_pkm.attack(opponent_pkm, player_pkm.multiturn_move, burnt)
+			player_pkm.multiturn_move = None
+			player_pkm.multiturn = 0
+		else:
+			player_choice = choice_cursor(player_pkm.movenames)
+			if player_choice.upper() == player_pkm.move1.name and player_pkm.move1.name:
+				player_pkm.attack(opponent_pkm, player_pkm.move1, burnt)
+			elif player_choice.upper() == player_pkm.move2.name and player_pkm.move2.name:
+				player_pkm.attack(opponent_pkm, player_pkm.move2, burnt)
+			elif player_choice.upper() == player_pkm.move3.name and player_pkm.move3.name:
+				player_pkm.attack(opponent_pkm, player_pkm.move3, burnt)
+			elif player_choice.upper() == player_pkm.move4.name and player_pkm.move4.name:
+				player_pkm.attack(opponent_pkm, player_pkm.move4, burnt)
+				
+	
+		
+	
+			
+
+
 def opponent_move(user, target):
-	moves = []
-	for move in user.movenames:
-		if not move is None:
-			moves.append(move)
-	opponent_choice = random.choice(moves)
-	if opponent_choice == user.move1.name and user.move1.name:
-		user.attack(target, user.move1)
-	elif opponent_choice == user.move2.name and user.move2.name:
-		user.attack(target, user.move2)
-	elif opponent_choice == user.move3.name and user.move3.name:
-		user.attack(target, user.move3)
-	elif opponent_choice == user.move4.name and user.move4.name:
-		user.attack(opponent_pkm, user.move4)
+	can_attack = True
+	if user.status_effect == "FRZ":
+		dialogue("{} is frozen solid!".format(user.name))
+		can_attack = False
+	elif user.status_effect == "PAR":
+		if probability_check(25):
+			dialogue("{} is paralyzed!".format(user.name))
+			can_attack = False
+	elif user.status_effect == "SLP":
+		if user.effect_counter == 0:
+			dialogue("{} woke up!".format(user.name))
+			user.status_effect = None
+		else:
+			dialogue("{} is fast asleep!".format(user.name))	
+			user.effect_counter -= 1
+		can_attack = False
+	elif user.status_effect == "CON":
+		if user.effect_counter == 0:
+			dialogue("{} is no longer confused!".format(user.name))
+			user.status_effect = None
+		else:
+			dialogue("{} is confused!".format(user.name))
+			if probability_check(50):
+				atk = calc_statmod(user.stat["ATK"], user.statmod["ATK"])
+				tdef = calc_statmod(user.stat["DEF"], user.statmod["DEF"])
+				rand = random.randint(217,255)
+				calc_damage = int((((((2*user.level)//5+2)*40*atk//tdef)//50+2)*rand)//255)
+				user.hp -= calc_damage
+				dialogue("It attacked itself in its confusion!")
+				can_attack = False
+	
+
+	if user.status_effect == "BRN":
+		burnt = True
+	else:
+		burnt = False
+	
+	if can_attack:
+		moves = []
+		for move in user.movenames:
+			if not move is None:
+				moves.append(move)
+		opponent_choice = random.choice(moves)
+		if opponent_choice == user.move1.name and user.move1.name:
+			user.attack(target, user.move1)
+		elif opponent_choice == user.move2.name and user.move2.name:
+			user.attack(target, user.move2)
+		elif opponent_choice == user.move3.name and user.move3.name:
+			user.attack(target, user.move3)
+		elif opponent_choice == user.move4.name and user.move4.name:
+			user.attack(opponent_pkm, user.move4)
+			
+		
 
 
 class Pokemon:
@@ -246,27 +391,48 @@ class Pokemon:
 		self.type1 = pkm_data[1]
 		self.type2 = pkm_data[2]
 		self.basestat = {"HP":pkm_data[4],"ATK":pkm_data[5],"DEF":pkm_data[6],"SPC":pkm_data[7],"SPD":pkm_data[8]}
-		self.movenames = [pkm_data[10], pkm_data[11], pkm_data[12], pkm_data[13]]
 		self.level = 5
+		self.movenames = moves_for_level(pkm_data, self.level)
+
 		self.iv = {"ATK": random.randint(0, 15), "DEF": random.randint(0, 15), "SPD": random.randint(0, 15),"SPC": random.randint(0, 15)}
 		self.stat = get_stats(self.basestat, self.level, self.iv)
 		self.hp = self.stat["HP"]
 		self.statmod = {"ATK":0,"DEF":0,"SPD":0,"SPC":0,"ACC":0,"EVS":0}
-		self.move1 = Attack(pkm_data[10])
-		self.move2 = Attack(pkm_data[11])
-		self.move3 = Attack(pkm_data[12])
-		self.move4 = Attack(pkm_data[13])
+		self.move1 = Attack(self.movenames[0])
+		self.move2 = Attack(self.movenames[1])
+		self.move3 = Attack(self.movenames[2])
+		self.move4 = Attack(self.movenames[3])
+		self.status_effect = None
+		self.effect_counter = 0
+		self.multiturn_move = None
+		self.multiturn = 0
+		self.damage_fx = None
 		
-	def attack(self, target, move):
-		if accuracy_check(self, target, move):
+	def attack(self, target, move, BRN = False):
+		
+		if move.status_effect == "SOLARBEAM" and not self.multiturn == 1:
+			self.multiturn_move = move
+			self.multiturn = 1
+			move.pp += 1
+			dialogue("{} took in sunlight!".format(self.name))
+		elif move.status_effect == "SKULL BASH" and not self.multiturn == 1:
+			self.multiturn_move = move
+			self.multiturn = 1
+			move.pp += 1
+			dialogue("{} lowered its head!".format(self.name))
+		
+		elif accuracy_check(self, target, move):
 			dialogue("{} used {}!".format(self.name, move.name))
 			if move.category != "STATUS":
 				level = self.level
-				if crit_check(self):
+				if crit_check(self):    
 					dialogue("Critical hit!")
 					level = level * 2
 				if move.category == "PHYSICAL":
-					atk = calc_statmod(self.stat["ATK"], self.statmod["ATK"])
+					if BRN:
+						atk = calc_statmod(self.stat["ATK"]//2, self.statmod["ATK"])
+					else:
+						atk = calc_statmod(self.stat["ATK"], self.statmod["ATK"])
 					tdef = calc_statmod(target.stat["DEF"], target.statmod["DEF"])
 				else:
 					atk = calc_statmod(self.stat["SPC"], self.statmod["SPC"])
@@ -282,33 +448,63 @@ class Pokemon:
 				calc_damage = int((((((2*level)//5+2)*pwr*atk//tdef)//50+2)*rand)//255*STAB*type_eff)
 
 				target.hp -= calc_damage
+				if move.status_effect in ['ATK','DEF','SPD','SPC']:
+					if probability_check(move.probability):
+						if target.statmod[move.status_effect] > -6:
+							target.statmod[move.status_effect] -= 1
+							dialogue("{}'s {} fell!".format(target.name, stat_abbreviation[move.status_effect]))
+				elif move.status_effect in ['BRN','PAR','SLP','PSN','FRZ']:
+					if probability_check(move.probability):
+						if target.status_effect == move.status_effect:
+							dialogue("{} is already {}!".format(target.name, effect_message2[move.status_effect]))
+						else:
+							target.status_effect = move.status_effect
+							dialogue(effect_message[move.status_effect].format(target.name))
+							if move.status_effect == "SLP":
+								target.effect_counter = random.randint(1,7)
+							elif move.status_effect == "CON":
+								target.effect_counter = random.randint(1,4)
+				elif move.status_effect not in ["NONE","SOLARBEAM","SKULL BASH"]:
+					print("This move's mechanics have not been implemented yet")
+
 			else:
-				if move.target == "TARGET":
-					if move.mod < 0:
-						if target.statmod[move.targetstat] > -6:
-							target.statmod[move.targetstat] += move.mod
-							dialogue("{}'s {} fell!".format(target.name, stat_abbreviation[move.targetstat]))
-						else:
-							dialogue("Nothing happened!")
+				if move.name == 'LEECH SEED':
+					if target.type1 == 'GRASS' or target.type2 == 'GRASS':
+						dialogue("It doesn't affect {}".format(target.name))
 					else:
-						if target.statmod[move.targetstat] < 6:
-							target.statmod[move.targetstat] += move.mod
-							dialogue("{}'s {} rose!".format(target.name, stat_abbreviation[move.targetstat]))
-						else:
-							dialogue("Nothing happened!")
+						dialogue("{} was seeded!".format(target.name))
+						target.damage_fx = 'LEECH SEED'
+				elif move.name == 'SLEEP POWDER':
+					target.status_effect = "SLP"
+					target.effect_counter = random.randint(1,7)
+					dialogue("{} fell asleep!".format(target.name))
 				else:
-					if move.mod < 0:
-						if self.statmod[move.targetstat] > -6:
-							self.statmod[move.targetstat] += move.mod
-							dialogue("{}'s {} fell!".format(self.name, stat_abbreviation[move.targetstat]))
+					if move.target == "TARGET":
+						if move.mod < 0:
+							if target.statmod[move.targetstat] > -6:
+								target.statmod[move.targetstat] += move.mod
+								dialogue("{}'s {} fell!".format(target.name, stat_abbreviation[move.targetstat]))
+							else:
+								dialogue("Nothing happened!")
 						else:
-							dialogue("Nothing happened!")
+							if target.statmod[move.targetstat] < 6:
+								target.statmod[move.targetstat] += move.mod
+								dialogue("{}'s {} rose!".format(target.name, stat_abbreviation[move.targetstat]))
+							else:
+								dialogue("Nothing happened!")
 					else:
-						if self.statmod[move.targetstat] < 6:
-							self.statmod[move.targetstat] += move.mod
-							dialogue("{}'s {} rose!".format(self.name, stat_abbreviation[move.targetstat]))
+						if move.mod < 0:
+							if self.statmod[move.targetstat] > -6:
+								self.statmod[move.targetstat] += move.mod
+								dialogue("{}'s {} fell!".format(self.name, stat_abbreviation[move.targetstat]))
+							else:
+								dialogue("Nothing happened!")
 						else:
-							dialogue("Nothing happened!")
+							if self.statmod[move.targetstat] < 6:
+								self.statmod[move.targetstat] += move.mod
+								dialogue("{}'s {} rose!".format(self.name, stat_abbreviation[move.targetstat]))
+							else:
+								dialogue("Nothing happened!")
 		else:
 			dialogue("The attack missed!")
 		move.pp -= 1
@@ -329,13 +525,25 @@ class Attack:
 				self.damage = int(atk_data[3])
 				self.accuracy = int(atk_data[4])
 				self.maxpp = int(atk_data[5])
+				self.status_effect = atk_data[6]
+				if self.status_effect != "NONE":
+					self.probability = int(atk_data[7])
+
 				
 			else:
 				self.target = atk_data[3]
 				self.targetstat = atk_data[4]
-				self.accuracy = int(atk_data[5])
+				self.status_effect = None
+				if atk_data[5] == "-":
+					self.accuracy = "-"
+				else:
+					self.accuracy = int(atk_data[5])
 				self.maxpp = int(atk_data[6])
-				self.mod = int(atk_data[7])
+				if self.targetstat == "STATUS":
+					self.mod = atk_data[7]
+				else:
+					self.mod = int(atk_data[7])
+					
 			self.pp = self.maxpp
 		else:
 			self.name = None
@@ -365,6 +573,7 @@ print(charmander.statmod["DEF"])
 
 # BATTLE TEST
 
+# Setup battle
 player_choice = choice_cursor(['BULBASAUR','CHARMANDER','SQUIRTLE', 'PIKACHU'])
 opponent = "BLUE"
 if player_choice.lower() == "charmander":
@@ -390,26 +599,45 @@ dialogue("{} sent out {}!".format(opponent, opponent_pkm.name))
 dialogue("Go! {}".format(player_pkm.name))
 
 
+# Main turn loop
 while True:
-	player_choice = choice_cursor(player_pkm.movenames)
-	if player_choice.upper() == player_pkm.move1.name and player_pkm.move1.name:
-		player_pkm.attack(opponent_pkm, player_pkm.move1)
-	elif player_choice.upper() == player_pkm.move2.name and player_pkm.move2.name:
-		player_pkm.attack(opponent_pkm, player_pkm.move2)
-	elif player_choice.upper() == player_pkm.move3.name and player_pkm.move3.name:
-		player_pkm.attack(opponent_pkm, player_pkm.move3)
-	elif player_choice.upper() == player_pkm.move4.name and player_pkm.move4.name:
-		player_pkm.attack(opponent_pkm, player_pkm.move4)
+	
+	player_turn(player_pkm)
 
 	print("{}: {}/{}".format(opponent_pkm.name, opponent_pkm.hp, opponent_pkm.stat["HP"]))
-
+	
+	if player_pkm.status_effect == "PSN" and opponent_pkm.hp != 0:
+		dialogue("{} is hurt by poison!".format(player_pkm.name))
+		player_pkm.hp -= player_pkm.stat["HP"]//16
+	elif player_pkm.status_effect == "BRN" and opponent_pkm.hp != 0:
+		dialogue("{} is hurt by the burn!".format(player_pkm.name))
+		player_pkm.hp -= player_pkm.stat["HP"]//16
+		
+	if player_pkm.damage_fx == "LEECH SEED":
+		dialogue("LEECH SEED saps {}!".format(player_pkm.name))
+		player_pkm.hp -= player_pkm.stat["HP"]//16
+	
+		
+		
 	if opponent_pkm.hp == 0:
 		dialogue("{} fainted!".format(opponent_pkm.name))
 		dialogue("{} was defeated!".format(opponent))
 		break
 
 	opponent_move(opponent_pkm, player_pkm)
+	
+	if opponent_pkm.status_effect == "PSN" and player_pkm.hp != 0:
+		dialogue("{} is hurt by poison!".format(opponent_pkm.name))
+		opponent_pkm.hp -= opponent_pkm.stat["HP"]//16
+	elif opponent_pkm.status_effect == "BRN" and player_pkm.hp != 0:
+		dialogue("{} is hurt by the burn!".format(opponent_pkm.name))
+		opponent_pkm.hp -= opponent_pkm.stat["HP"]//16
 
+	if opponent_pkm.damage_fx == "LEECH SEED":
+		dialogue("LEECH SEED saps {}".format(opponent_pkm.name))
+		opponent_pkm.hp -= opponent_pkm.stat["HP"]//16
+		
+		
 	if player_pkm.hp == 0:
 		dialogue("{} fainted!".format(player_pkm.name))
 		dialogue("PLAYER is out of usable Pokemon!")
