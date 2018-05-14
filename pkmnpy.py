@@ -15,6 +15,8 @@ else:
 stat_abbreviation = {"ATK":"ATTACK", "DEF":"DEFENSE","SPD":"SPEED","SPC":"SPECIAL","ACC":"ACCURACY","EVS":"EVASION"}
 effect_message = {"FRZ":"{} was frozen solid!","BRN":"{} was burned!","PSN":"{} was poisoned!","SLP":"{} fell asleep!","PAR":"{} is paralyzed! It may not attack!"}
 effect_message2 = {"FRZ":"frozen","BRN":"burned","PSN":"poisoned","SLP":"asleep","PAR":"paralyzed"}
+
+multiturns = {'SKY ATTACK':'{} is glowing!','SKULL BASH':'{} lowered its head!','SOLARBEAM':'{} took in sunlight!'}
 def dialogue(string):
 	'''Prints a message one character at a time'''
 	for char in string:
@@ -47,6 +49,9 @@ def choice_cursor(choices):
 			elif selection.lower() == 'quit' or selection.lower() == 'exit':
 				print("Exiting.")
 				sys.exit()
+			elif selection.lower() in ['missingno','missingno.']:
+				selection = 'missingno'
+				break
 			else:
 				print("Invalid choice.")
 		return selection
@@ -152,7 +157,8 @@ def get_matchup(move_type, target_type1, target_type2):
 					  "ELECTRIC": ["FLYING", "WATER"],
 					  "PSYCHIC": ["FIGHTING", "POISON"],
 					  "ICE": ["FLYING", "GROUND", "GRASS", "DRAGON"],
-					  "DRAGON": ["DRAGON"]}
+					  "DRAGON": ["DRAGON"],
+					  "BIRD":[]}
 
 	weak_against = {"NORMAL": ["ROCK"],
 					"FIGHTING": ["FLYING", "POISON", "BUG", "PSYCHIC"],
@@ -168,7 +174,8 @@ def get_matchup(move_type, target_type1, target_type2):
 					"ELECTRIC": ["GRASS", "ELECTRIC", "DRAGON"],
 					"PSYCHIC": ["PSYCHIC"],
 					"ICE": ["WATER", "ICE"],
-					"DRAGON": []}
+					"DRAGON": [],
+					"BIRD":[]}
 
 	no_effect = {'NORMAL': ['GHOST'],
 				 'FIGHTING': ['GHOST'],
@@ -184,7 +191,8 @@ def get_matchup(move_type, target_type1, target_type2):
 				 'ELECTRIC': ['GROUND'],
 				 'PSYCHIC': [],
 				 'ICE': [],
-				 'DRAGON': []}
+				 'DRAGON': [],
+				 'BIRD':[]}
 
 	if target_type1 in strong_against[move_type]:
 		multiplier *= 2
@@ -410,16 +418,12 @@ class Pokemon:
 		
 	def attack(self, target, move, BRN = False):
 		
-		if move.status_effect == "SOLARBEAM" and not self.multiturn == 1:
+		if move.status_effect in multiturns and not self.multiturn == 1:
 			self.multiturn_move = move
 			self.multiturn = 1
 			move.pp += 1
-			dialogue("{} took in sunlight!".format(self.name))
-		elif move.status_effect == "SKULL BASH" and not self.multiturn == 1:
-			self.multiturn_move = move
-			self.multiturn = 1
-			move.pp += 1
-			dialogue("{} lowered its head!".format(self.name))
+			dialogue(multiturns[move.status_effect].format(self.name))
+		
 		
 		elif accuracy_check(self, target, move):
 			dialogue("{} used {}!".format(self.name, move.name))
@@ -464,7 +468,7 @@ class Pokemon:
 								target.effect_counter = random.randint(1,7)
 							elif move.status_effect == "CON":
 								target.effect_counter = random.randint(1,4)
-				elif move.status_effect not in ["NONE","SOLARBEAM","SKULL BASH"]:
+				elif move.status_effect not in ["NONE","SOLARBEAM","SKULL BASH","SKY ATTACK"]:
 					print("This move's mechanics have not been implemented yet")
 
 			else:
@@ -592,7 +596,10 @@ elif player_choice.lower() == "dev":
 	opponent_pkm = Pokemon(player_choice.lower())
 else:
 	opponent_pkm = Pokemon("eevee")
-	player_pkm = Pokemon("pikachu")
+	if player_choice.lower() == "missingno." or player_choice.lower() == 'missingno':
+		player_pkm = Pokemon("missingno")
+	else:
+		player_pkm = Pokemon("pikachu")
 
 dialogue("{} wants to fight!".format(opponent))
 dialogue("{} sent out {}!".format(opponent, opponent_pkm.name))
