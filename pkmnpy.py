@@ -3,7 +3,6 @@ import random, sys, time, click, os
 
 if os.name == 'nt':
 	is_windows = True
-	print("Using Windows. Cursor selection not supported.")
 else:
 	is_windows = False
 
@@ -574,88 +573,88 @@ squirtle.attack(charmander, squirtle.move2)
 
 print(charmander.statmod["DEF"])
 '''
+if __name__ == "__main__":
+	# BATTLE TEST
 
-# BATTLE TEST
-
-# Setup battle
-player_choice = choice_cursor(['BULBASAUR','CHARMANDER','SQUIRTLE', 'PIKACHU'])
-opponent = "BLUE"
-if player_choice.lower() == "charmander":
-	player_pkm = Pokemon(player_choice.lower())
-	opponent_pkm = Pokemon("squirtle")
-elif player_choice.lower() == "squirtle":
-	player_pkm = Pokemon(player_choice.lower())
-	opponent_pkm = Pokemon("bulbasaur")
-elif player_choice.lower() == "bulbasaur":
-	player_pkm = Pokemon(player_choice.lower())
-	opponent_pkm = Pokemon("charmander")
-elif player_choice.lower() == "dev":
-	player_choice = input("What Pokemon do you choose? >")
-	player_pkm = Pokemon(player_choice.lower())
-	player_choice = input("What Pokemon to battle? >")
-	opponent_pkm = Pokemon(player_choice.lower())
-else:
-	opponent_pkm = Pokemon("eevee")
-	if player_choice.lower() == "missingno." or player_choice.lower() == 'missingno':
-		player_pkm = Pokemon("missingno")
+	# Setup battle
+	player_choice = choice_cursor(['BULBASAUR','CHARMANDER','SQUIRTLE', 'PIKACHU'])
+	opponent = "BLUE"
+	if player_choice.lower() == "charmander":
+		player_pkm = Pokemon(player_choice.lower())
+		opponent_pkm = Pokemon("squirtle")
+	elif player_choice.lower() == "squirtle":
+		player_pkm = Pokemon(player_choice.lower())
+		opponent_pkm = Pokemon("bulbasaur")
+	elif player_choice.lower() == "bulbasaur":
+		player_pkm = Pokemon(player_choice.lower())
+		opponent_pkm = Pokemon("charmander")
+	elif player_choice.lower() == "dev":
+		player_choice = input("What Pokemon do you choose? >")
+		player_pkm = Pokemon(player_choice.lower())
+		player_choice = input("What Pokemon to battle? >")
+		opponent_pkm = Pokemon(player_choice.lower())
 	else:
-		player_pkm = Pokemon("pikachu")
+		opponent_pkm = Pokemon("eevee")
+		if player_choice.lower() == "missingno." or player_choice.lower() == 'missingno':
+			player_pkm = Pokemon("missingno")
+		else:
+			player_pkm = Pokemon("pikachu")
 
-dialogue("{} wants to fight!".format(opponent))
-dialogue("{} sent out {}!".format(opponent, opponent_pkm.name))
-dialogue("Go! {}".format(player_pkm.name))
+	dialogue("{} wants to fight!".format(opponent))
+	dialogue("{} sent out {}!".format(opponent, opponent_pkm.name))
+	dialogue("Go! {}".format(player_pkm.name))
 
 
-# Main turn loop
-while True:
-	
-	player_turn(player_pkm)
-
-	print("{}: {}/{}".format(opponent_pkm.name, opponent_pkm.hp, opponent_pkm.stat["HP"]))
-	
-	if player_pkm.status_effect == "PSN" and opponent_pkm.hp != 0:
-		dialogue("{} is hurt by poison!".format(player_pkm.name))
-		player_pkm.hp -= player_pkm.stat["HP"]//16
-	elif player_pkm.status_effect == "BRN" and opponent_pkm.hp != 0:
-		dialogue("{} is hurt by the burn!".format(player_pkm.name))
-		player_pkm.hp -= player_pkm.stat["HP"]//16
+	# Main turn loop
+	while True:
 		
-	if player_pkm.damage_fx == "LEECH SEED":
-		dialogue("LEECH SEED saps {}!".format(player_pkm.name))
-		player_pkm.hp -= player_pkm.stat["HP"]//16
-	
+		player_turn(player_pkm)
+
+		print("{}: {}/{}".format(opponent_pkm.name, opponent_pkm.hp, opponent_pkm.stat["HP"]))
 		
+		if player_pkm.status_effect == "PSN" and opponent_pkm.hp != 0:
+			dialogue("{} is hurt by poison!".format(player_pkm.name))
+			player_pkm.hp -= player_pkm.stat["HP"]//16
+		elif player_pkm.status_effect == "BRN" and opponent_pkm.hp != 0:
+			dialogue("{} is hurt by the burn!".format(player_pkm.name))
+			player_pkm.hp -= player_pkm.stat["HP"]//16
+			
+		if player_pkm.damage_fx == "LEECH SEED":
+			dialogue("LEECH SEED saps {}!".format(player_pkm.name))
+			player_pkm.hp -= player_pkm.stat["HP"]//16
 		
-	if opponent_pkm.hp == 0:
-		dialogue("{} fainted!".format(opponent_pkm.name))
-		dialogue("{} was defeated!".format(opponent))
-		break
+			
+			
+		if opponent_pkm.hp == 0:
+			dialogue("{} fainted!".format(opponent_pkm.name))
+			dialogue("{} was defeated!".format(opponent))
+			break
 
-	opponent_move(opponent_pkm, player_pkm)
-	
-	if opponent_pkm.status_effect == "PSN" and player_pkm.hp != 0:
-		dialogue("{} is hurt by poison!".format(opponent_pkm.name))
-		opponent_pkm.hp -= opponent_pkm.stat["HP"]//16
-	elif opponent_pkm.status_effect == "BRN" and player_pkm.hp != 0:
-		dialogue("{} is hurt by the burn!".format(opponent_pkm.name))
-		opponent_pkm.hp -= opponent_pkm.stat["HP"]//16
-
-	if opponent_pkm.damage_fx == "LEECH SEED":
-		dialogue("LEECH SEED saps {}".format(opponent_pkm.name))
-		opponent_pkm.hp -= opponent_pkm.stat["HP"]//16
+		opponent_move(opponent_pkm, player_pkm)
 		
-		
-	if player_pkm.hp == 0:
-		dialogue("{} fainted!".format(player_pkm.name))
-		dialogue("PLAYER is out of usable Pokemon!")
-		dialogue("PLAYER blacked out!")
-		break
+		if opponent_pkm.status_effect == "PSN" and player_pkm.hp != 0:
+			dialogue("{} is hurt by poison!".format(opponent_pkm.name))
+			opponent_pkm.hp -= opponent_pkm.stat["HP"]//16
+		elif opponent_pkm.status_effect == "BRN" and player_pkm.hp != 0:
+			dialogue("{} is hurt by the burn!".format(opponent_pkm.name))
+			opponent_pkm.hp -= opponent_pkm.stat["HP"]//16
 
-	print("{}: {}/{}".format(player_pkm.name, player_pkm.hp, player_pkm.stat["HP"]))
+		if opponent_pkm.damage_fx == "LEECH SEED":
+			dialogue("LEECH SEED saps {}".format(opponent_pkm.name))
+			opponent_pkm.hp -= opponent_pkm.stat["HP"]//16
+			
+			
+		if player_pkm.hp == 0:
+			dialogue("{} fainted!".format(player_pkm.name))
+			dialogue("PLAYER is out of usable Pokemon!")
+			dialogue("PLAYER blacked out!")
+			break
+
+		print("{}: {}/{}".format(player_pkm.name, player_pkm.hp, player_pkm.stat["HP"]))
 
 
 
-time.sleep(1)
+	time.sleep(1)
 
 
 
