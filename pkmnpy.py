@@ -26,6 +26,11 @@ def dialogue(string):
 	print()
 
 
+def deal_damage(target, damage):
+	'''Lowers the HP of the Pokemon. The Pygame version overrides this with its own function in order to animate.'''
+	target.hp -= damage
+
+
 def choice_cursor(choices):
 	'''Creates a cursor selection from different options'''
 
@@ -303,7 +308,7 @@ def player_turn(player_pkm):
 				tdef = calc_statmod(player_pkm.stat["DEF"], player_pkm.statmod["DEF"])
 				rand = random.randint(217,255)
 				calc_damage = int((((((2*player_pkm.level)//5+2)*40*atk//tdef)//50+2)*rand)//255)
-				player_pkm.hp -= calc_damage
+				deal_damage(player_pkm, calc_damage)
 				dialogue("It attacked itself in its confusion!")
 				can_attack = False
 	
@@ -362,7 +367,7 @@ def opponent_move(user, target):
 				tdef = calc_statmod(user.stat["DEF"], user.statmod["DEF"])
 				rand = random.randint(217,255)
 				calc_damage = int((((((2*user.level)//5+2)*40*atk//tdef)//50+2)*rand)//255)
-				user.hp -= calc_damage
+				deal_damage(user, calc_damage)
 				dialogue("It attacked itself in its confusion!")
 				can_attack = False
 	
@@ -450,7 +455,7 @@ class Pokemon:
 
 				calc_damage = int((((((2*level)//5+2)*pwr*atk//tdef)//50+2)*rand)//255*STAB*type_eff)
 
-				target.hp -= calc_damage
+				deal_damage(target, calc_damage)
 				if move.status_effect in ['ATK','DEF','SPD','SPC']:
 					if probability_check(move.probability):
 						if target.statmod[move.status_effect] > -6:
@@ -554,6 +559,14 @@ class Attack:
 	def __bool__(self):
 		if self.name is None:
 			return False
+
+
+class Trainer:
+	def __init__(self, name, t_class="TRAINER"):
+		self.name = name
+		self.team = []
+		self.t_class = t_class
+		self.active_slot = 0
 	
 '''
 charmander = Pokemon("charmander")
@@ -577,31 +590,38 @@ if __name__ == "__main__":
 	# BATTLE TEST
 
 	# Setup battle
+	player = Trainer("RED")
+	opponent = Trainer("BLUE","RIVAL")
+
+	
 	player_choice = choice_cursor(['BULBASAUR','CHARMANDER','SQUIRTLE', 'PIKACHU'])
-	opponent = "BLUE"
+	
 	if player_choice.lower() == "charmander":
-		player_pkm = Pokemon(player_choice.lower())
-		opponent_pkm = Pokemon("squirtle")
+		player.team.append(Pokemon(player_choice.lower()))
+		opponent.team.append(Pokemon("squirtle"))
 	elif player_choice.lower() == "squirtle":
-		player_pkm = Pokemon(player_choice.lower())
-		opponent_pkm = Pokemon("bulbasaur")
+		player.team.append(Pokemon(player_choice.lower()))
+		opponent.team.append(Pokemon("bulbasaur"))
 	elif player_choice.lower() == "bulbasaur":
-		player_pkm = Pokemon(player_choice.lower())
-		opponent_pkm = Pokemon("charmander")
+		player.team.append(Pokemon(player_choice.lower()))
+		opponent.team.append(Pokemon("charmander"))
 	elif player_choice.lower() == "dev":
 		player_choice = input("What Pokemon do you choose? >")
-		player_pkm = Pokemon(player_choice.lower())
+		player.team.append(Pokemon(player_choice.lower()))
 		player_choice = input("What Pokemon to battle? >")
-		opponent_pkm = Pokemon(player_choice.lower())
+		opponent.team.append(Pokemon(player_choice.lower()))
 	else:
-		opponent_pkm = Pokemon("eevee")
+		opponent.team.append(Pokemon("eevee"))
 		if player_choice.lower() == "missingno." or player_choice.lower() == 'missingno':
-			player_pkm = Pokemon("missingno")
+			player.team.append(Pokemon("missingno"))
 		else:
-			player_pkm = Pokemon("pikachu")
+			player.team.append(Pokemon("pikachu"))
 
-	dialogue("{} wants to fight!".format(opponent))
-	dialogue("{} sent out {}!".format(opponent, opponent_pkm.name))
+	player_pkm = player.team[player.active_slot]
+	opponent_pkm = opponent.team[opponent.active_slot]
+
+	dialogue("{} wants to fight!".format(opponent.name))
+	dialogue("{} sent out {}!".format(opponent.name, opponent_pkm.name))
 	dialogue("Go! {}".format(player_pkm.name))
 
 
@@ -614,40 +634,40 @@ if __name__ == "__main__":
 		
 		if player_pkm.status_effect == "PSN" and opponent_pkm.hp != 0:
 			dialogue("{} is hurt by poison!".format(player_pkm.name))
-			player_pkm.hp -= player_pkm.stat["HP"]//16
+			deal_damage(player_pkm, player_pkm.stat["HP"]//16)
 		elif player_pkm.status_effect == "BRN" and opponent_pkm.hp != 0:
 			dialogue("{} is hurt by the burn!".format(player_pkm.name))
-			player_pkm.hp -= player_pkm.stat["HP"]//16
+			deal_damage(player_pkm, player_pkm.stat["HP"] // 16)
 			
 		if player_pkm.damage_fx == "LEECH SEED":
 			dialogue("LEECH SEED saps {}!".format(player_pkm.name))
-			player_pkm.hp -= player_pkm.stat["HP"]//16
+			deal_damage(player_pkm, player_pkm.stat["HP"] // 16)
 		
 			
 			
 		if opponent_pkm.hp == 0:
 			dialogue("{} fainted!".format(opponent_pkm.name))
-			dialogue("{} was defeated!".format(opponent))
+			dialogue("{} was defeated!".format(opponent.name))
 			break
 
 		opponent_move(opponent_pkm, player_pkm)
 		
 		if opponent_pkm.status_effect == "PSN" and player_pkm.hp != 0:
 			dialogue("{} is hurt by poison!".format(opponent_pkm.name))
-			opponent_pkm.hp -= opponent_pkm.stat["HP"]//16
+			deal_damage(opponent_pkm, opponent_pkm.stat["HP"] // 16)
 		elif opponent_pkm.status_effect == "BRN" and player_pkm.hp != 0:
 			dialogue("{} is hurt by the burn!".format(opponent_pkm.name))
-			opponent_pkm.hp -= opponent_pkm.stat["HP"]//16
+			deal_damage(opponent_pkm, opponent_pkm.stat["HP"] // 16)
 
 		if opponent_pkm.damage_fx == "LEECH SEED":
 			dialogue("LEECH SEED saps {}".format(opponent_pkm.name))
-			opponent_pkm.hp -= opponent_pkm.stat["HP"]//16
+			deal_damage(opponent_pkm, opponent_pkm.stat["HP"] // 16)
 			
 			
 		if player_pkm.hp == 0:
 			dialogue("{} fainted!".format(player_pkm.name))
-			dialogue("PLAYER is out of usable Pokemon!")
-			dialogue("PLAYER blacked out!")
+			dialogue("{} is out of usable Pokemon!".format(player.name))
+			dialogue("{} blacked out!".format(player.name))
 			break
 
 		print("{}: {}/{}".format(player_pkm.name, player_pkm.hp, player_pkm.stat["HP"]))
