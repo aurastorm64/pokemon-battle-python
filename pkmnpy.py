@@ -19,9 +19,17 @@ multiturns = {'SKY ATTACK':'{} is glowing!','SKULL BASH':'{} lowered its head!',
 def dialogue(string):
 	'''Prints a message one character at a time'''
 	for char in string:
-		print(char, end="")
-		sys.stdout.flush()
-		time.sleep(0.05)
+		if char == "~":
+			print("'", end="")
+			sys.stdout.flush()
+			time.sleep(0.05)
+			print("s", end = "")
+			time.sleep(0.05)
+
+		else:
+			print(char, end="")
+			sys.stdout.flush()
+			time.sleep(0.05)
 			
 	print()
 
@@ -491,26 +499,26 @@ class Pokemon:
 						if move.mod < 0:
 							if target.statmod[move.targetstat] > -6:
 								target.statmod[move.targetstat] += move.mod
-								dialogue("{}'s {} fell!".format(target.name, stat_abbreviation[move.targetstat]))
+								dialogue("{}~ {} fell!".format(target.name, stat_abbreviation[move.targetstat]))
 							else:
 								dialogue("Nothing happened!")
 						else:
 							if target.statmod[move.targetstat] < 6:
 								target.statmod[move.targetstat] += move.mod
-								dialogue("{}'s {} rose!".format(target.name, stat_abbreviation[move.targetstat]))
+								dialogue("{}~ {} rose!".format(target.name, stat_abbreviation[move.targetstat]))
 							else:
 								dialogue("Nothing happened!")
 					else:
 						if move.mod < 0:
 							if self.statmod[move.targetstat] > -6:
 								self.statmod[move.targetstat] += move.mod
-								dialogue("{}'s {} fell!".format(self.name, stat_abbreviation[move.targetstat]))
+								dialogue("{}~ {} fell!".format(self.name, stat_abbreviation[move.targetstat]))
 							else:
 								dialogue("Nothing happened!")
 						else:
 							if self.statmod[move.targetstat] < 6:
 								self.statmod[move.targetstat] += move.mod
-								dialogue("{}'s {} rose!".format(self.name, stat_abbreviation[move.targetstat]))
+								dialogue("{}~ {} rose!".format(self.name, stat_abbreviation[move.targetstat]))
 							else:
 								dialogue("Nothing happened!")
 		else:

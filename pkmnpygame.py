@@ -2,6 +2,7 @@ import sys, pygame, pygame.color, textwrap, pkmnpy
 
 # The keys that are used as the A button on a GameBoy
 a_keys = [pygame.K_SPACE, pygame.K_RETURN, pygame.K_KP_ENTER]
+b_keys = [pygame.K_BACKSPACE]
 
 
 def dialogue(string):
@@ -175,7 +176,7 @@ def deal_damage(target, damage):
 			pygame.draw.rect(screen, palette_light, [96, 75, 48, 2], 0)
 			pygame.draw.rect(screen, palette_dark, [96, 75, old_bar-i, 2], 0)
 			pygame.draw.rect(screen, palette_light, [88, 80, 24, 8], 0)
-			text(str(player_pkm.hp).rjust(3), [88, 80])
+			text(str(int(old_hp - ((old_hp - player_pkm.hp)/(old_bar-new_bar)*i))).rjust(3), [88, 80])
 			pygame.display.flip()
 			pygame.time.delay(500//(old_hp - target.hp))
 	else:
@@ -253,18 +254,159 @@ def animate_intro(player, opponent):
 	pygame.display.flip()
 	pygame.time.delay(250)
 
+def menu(menu_type):
+	'''Handles the menu selection'''
+	global move_cursor
 
-	
+	if menu_type == "MAIN":
+		cursor_pos = [0, 0]
+		screen.blit(textbox_battlemenu, [0, 96])	
+		pygame.display.flip()
+		selecting = True
+		while selecting:
+			
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT:
+					sys.exit()
+				elif event.type == pygame.KEYDOWN:
+					pygame.draw.rect(screen, palette_light, [(72 + cursor_pos[0]*48), (112 + cursor_pos[1]*16), 8, 8], 0)
+					if event.key == pygame.K_ESCAPE:
+						sys.exit()
+					elif event.key in a_keys:
+						if cursor_pos[0] + cursor_pos[1] == 2:
+							if battle_type == "TRAINER":
+								pygame.draw.rect(screen, palette_light, [0, 96, 160, 48], 0)
+								dialogue("No! There~ no running from a trainer battle!") # '~' is used for apostrophe s
+								screen.blit(textbox_battlemenu, [0, 96])
+								pygame.draw.rect(screen, palette_light, [72, 112, 8, 8], 0)
+								pygame.display.flip()
+							else:
+								choice = "RUN"
+								selecting = False
+								break
+						elif cursor_pos[0] + cursor_pos[1] == 0:
+							selecting = False
+							choice = "FIGHT"
+							break
+						else:
+							pass
+
+					elif event.key == pygame.K_LEFT:
+						cursor_pos[0] = (cursor_pos[0] - 1) % 2
+					elif event.key == pygame.K_RIGHT:
+						cursor_pos[0] = (cursor_pos[0] + 1) % 2
+					elif event.key == pygame.K_UP:
+						cursor_pos[1] = (cursor_pos[1] - 1) % 2
+					elif event.key == pygame.K_DOWN:
+						cursor_pos[1] = (cursor_pos[1] + 1) % 2
+					screen.blit(cursor_right, [(72 + cursor_pos[0]*48), (112 + cursor_pos[1]*16)])
+					pygame.display.flip()
+		pygame.draw.rect(screen, palette_light, [0, 96, 160, 48], 0)
+
+
+	if menu_type == "FIGHT":
+		num_of_moves = 0
+		for move in [player_pkm.move1, player_pkm.move2, player_pkm.move3, player_pkm.move4]:
+			if not move.name is None:
+				num_of_moves += 1
+
+
+		screen.blit(textbox_fight, [0,0])
+		pygame.draw.rect(screen, palette_light, [40, 104, 8, 8], 0)
+		if player_pkm.move1.name is not None:
+			pygame.draw.rect(screen, palette_light, [48, 104, 8, 8], 0)
+			text(player_pkm.move1.name, [48, 104])
+		if player_pkm.move2.name is not None:
+			pygame.draw.rect(screen, palette_light, [48, 112, 8, 8], 0)
+			text(player_pkm.move2.name, [48, 112])
+		if player_pkm.move3.name is not None:
+			pygame.draw.rect(screen, palette_light, [48, 120, 8, 8], 0)
+			text(player_pkm.move3.name, [48, 120])
+		if player_pkm.move4.name is not None:
+			pygame.draw.rect(screen, palette_light, [48, 128, 8, 8], 0)
+			text(player_pkm.move4.name, [48, 128])
+			pygame.draw.rect(screen, palette_light, [40, 104, 8, 8], 0)
+
+		if move_cursor == 0:
+			current_move = player_pkm.move1
+		elif move_cursor == 1:
+			current_move = player_pkm.move2
+		elif move_cursor == 2:
+			current_move = player_pkm.move3
+		else:
+			current_move = player_pkm.move4
+
+		screen.blit(textbox_type, [0, 64])
+		screen.blit(cursor_right, [40, 104 + (move_cursor * 8)])
+		text(current_move.type, [16, 80])
+		text(str(current_move.pp).rjust(2), [40, 88])
+		text(str(current_move.maxpp).rjust(2), [64, 88])
+
+		pygame.display.flip()
+		selecting = True
+
+		while selecting:
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT:
+					sys.exit()
+				elif event.type == pygame.KEYDOWN:
+					pygame.draw.rect(screen, palette_light, [40, 104+(8*move_cursor), 8, 8], 0)
+					if event.key == pygame.K_ESCAPE:
+						sys.exit()
+					elif event.key in a_keys:
+						choice = move_cursor
+						selecting = False
+						break
+					elif event.key in b_keys:
+						choice = "BACK"
+						selecting = False
+						break
+					elif event.key == pygame.K_UP:
+						move_cursor = (move_cursor - 1) % num_of_moves
+					elif event.key == pygame.K_DOWN:
+						move_cursor = (move_cursor + 1) % num_of_moves
+
+
+					if move_cursor == 0:
+						current_move = player_pkm.move1
+					elif move_cursor == 1:
+						current_move = player_pkm.move2
+					elif move_cursor == 2:
+						current_move = player_pkm.move3
+					else:
+						current_move = player_pkm.move4
+
+					screen.blit(textbox_type, [0,64])
+					text(current_move.type, [16, 80])
+					text(str(current_move.pp).rjust(2), [40,88])
+					text(str(current_move.maxpp).rjust(2), [64, 88])
+					screen.blit(cursor_right, [40, 104+(move_cursor*8)])
+					pygame.display.flip()
+
+		pygame.draw.rect(screen, palette_light, [0, 96, 160, 48], 0)
+		pygame.draw.rect(screen, palette_light, [0, 64, 88, 40], 0)
+		screen.blit(player_pkm.sprite, [2, 32])
+		screen.blit(player_hud, [0,0])
+		text(player_pkm.name, [80,56])
+		text(str(player_pkm.level), [120,64])
+		text(str(player_pkm.hp).rjust(3), [88,80])
+		text(str(player_pkm.stat["HP"]).rjust(3), [120,80])
+		draw_hp("PLAYER")
+
+	return choice
+
+			
 	
 pkmnpy.dialogue = dialogue
 pkmnpy.deal_damage = deal_damage
 font_chars = {}
-for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ!1234567890":
+for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ!-1234567890":
 	font_chars[char] = pygame.image.load("img/font/{}.png".format(char))
 for char in "abcdefghijklmnopqrstuvwxyz":
 	font_chars[char] = pygame.image.load("img/font/{}l.png".format(char))
 font_chars[" "] = pygame.image.load("img/font/space.png")
 font_chars["."] = pygame.image.load("img/font/period.png")
+font_chars["~"] = pygame.image.load("img/font/apos_s.png")
 
 
 
@@ -290,7 +432,11 @@ pokeball_bar = pygame.image.load("img/pokeballs.png")
 pokeball_bar2 = pygame.image.load("img/pokeballs_opponent.png")
 opponent_hud = pygame.image.load("img/opponent_hud.png")
 player_hud = pygame.image.load("img/player_hud.png")
+textbox_battlemenu = pygame.image.load("img/textbox_02.png")
+textbox_fight = pygame.image.load("img/textbox_fight.png")
+textbox_type = pygame.image.load("img/textbox_type.png")
 
+move_cursor = 0 # The cursor remains on the last selected move in the actual game
 '''
 screen.blit(battle_intro, [0,0])
 
@@ -300,6 +446,8 @@ pygame.display.flip()
 dialogue("THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG!")
 dialogue("The quick brown fox jumps over the lazy dog.")
 '''
+
+battle_type = "TRAINER"
 
 player = pkmnpy.Trainer("RED")
 opponent = pkmnpy.Trainer("BLUE", "RIVAL")
@@ -317,11 +465,72 @@ opponent_pkm.sprite = pygame.image.load("img/pkm/front/{}.png".format(opponent_p
 
 animate_intro(player, opponent)
 
+# BATTLE
+while True:
 
-player_pkm.attack(opponent_pkm, player_pkm.move1)
+	for event in pygame.event.get():
+		if event.type == pygame.QUIT:
+			sys.exit()
+		elif event.type == pygame.KEYDOWN:
+			if event.key == pygame.K_ESCAPE:
+				sys.exit()
+
+	in_menu = True
+	while in_menu:
+		menu_sel = menu("MAIN")
+		if menu_sel == "FIGHT":
+			menu_sel = menu("FIGHT")
+			if menu_sel != "BACK":
+				in_menu = False
 
 
-opponent_pkm.attack(player_pkm, opponent_pkm.move1)
+	if pkmnpy.calc_statmod(player_pkm.stat["SPD"], player_pkm.statmod["SPD"]) > pkmnpy.calc_statmod(opponent_pkm.stat["SPD"], opponent_pkm.statmod["SPD"]):
+		if	menu_sel == 0:
+			player_pkm.attack(opponent_pkm, player_pkm.move1)
+		elif menu_sel == 1:
+			player_pkm.attack(opponent_pkm, player_pkm.move2)
+		elif menu_sel == 2:
+			player_pkm.attack(opponent_pkm, player_pkm.move3)
+		elif menu_sel == 3:
+			player_pkm,attack(opponent_pkm, player_pkm.move4)
+
+		if opponent_pkm.hp == 0:
+			dialogue("{} fainted!".format(opponent_pkm.name))
+			dialogue("{} was defeated!".format(opponent.name))
+			break
+
+		opponent_pkm.attack(player_pkm, opponent_pkm.move1)
+
+	else:
+		opponent_pkm.attack(player_pkm, opponent_pkm.move1)
+
+		if player_pkm.hp == 0:
+			dialogue("{} fainted!".format(player_pkm.name))
+			dialogue("{} is out of usable Pokemon!".format(player.name))
+			dialogue("{} blacked out!".format(player.name))
+			break
+
+		if menu_sel == 0:
+			player_pkm.attack(opponent_pkm, player_pkm.move1)
+		elif menu_sel == 1:
+			player_pkm.attack(opponent_pkm, player_pkm.move2)
+		elif menu_sel == 2:
+			player_pkm.attack(opponent_pkm, player_pkm.move3)
+		elif menu_sel == 3:
+			player_pkm, attack(opponent_pkm, player_pkm.move4)
+
+	if opponent_pkm.hp == 0:
+		dialogue("{} fainted!".format(opponent_pkm.name))
+		dialogue("{} was defeated!".format(opponent.name))
+		break
+
+	if player_pkm.hp == 0:
+		dialogue("{} fainted!".format(player_pkm.name))
+		dialogue("{} is out of usable Pokemon!".format(player.name))
+		dialogue("{} blacked out!".format(player.name))
+		break
+
+
 
 
 
