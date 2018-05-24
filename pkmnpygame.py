@@ -254,13 +254,15 @@ def animate_intro(player, opponent):
 	pygame.display.flip()
 	pygame.time.delay(250)
 
-def menu(menu_type):
+def menu(menu_type, cursor_start = [0,0]):
 	'''Handles the menu selection'''
 	global move_cursor
 
 	if menu_type == "MAIN":
-		cursor_pos = [0, 0]
-		screen.blit(textbox_battlemenu, [0, 96])	
+		cursor_pos = cursor_start
+		screen.blit(textbox_battlemenu, [0, 96])
+		pygame.draw.rect(screen, palette_light, [72, 112, 8, 8], 0)
+		screen.blit(cursor_right, [(72 + cursor_pos[0]*48), (112 + cursor_pos[1]*16)])
 		pygame.display.flip()
 		selecting = True
 		while selecting:
@@ -288,23 +290,32 @@ def menu(menu_type):
 							selecting = False
 							choice = "FIGHT"
 							break
+						elif cursor_pos[0] == 0 and cursor_pos[1] == 1:
+							choice = "ITEM"
+							selecting = False
+							break
 						else:
-							pass
+							pygame.draw.rect(screen, palette_light, [0, 96, 160, 48], 0)
+							dialogue("POKeMON menu not implemented yet.")
+							
+							screen.blit(textbox_battlemenu, [0, 96])
+							pygame.draw.rect(screen, palette_light, [72, 112, 8, 8], 0)
+							pygame.display.flip()
 
 					elif event.key == pygame.K_LEFT:
-						cursor_pos[0] = (cursor_pos[0] - 1) % 2
+						cursor_pos[0] = 0
 					elif event.key == pygame.K_RIGHT:
-						cursor_pos[0] = (cursor_pos[0] + 1) % 2
+						cursor_pos[0] = 1
 					elif event.key == pygame.K_UP:
-						cursor_pos[1] = (cursor_pos[1] - 1) % 2
+						cursor_pos[1] = 0
 					elif event.key == pygame.K_DOWN:
-						cursor_pos[1] = (cursor_pos[1] + 1) % 2
+						cursor_pos[1] = 1
 					screen.blit(cursor_right, [(72 + cursor_pos[0]*48), (112 + cursor_pos[1]*16)])
 					pygame.display.flip()
 		pygame.draw.rect(screen, palette_light, [0, 96, 160, 48], 0)
 
 
-	if menu_type == "FIGHT":
+	elif menu_type == "FIGHT":
 		num_of_moves = 0
 		for move in [player_pkm.move1, player_pkm.move2, player_pkm.move3, player_pkm.move4]:
 			if not move.name is None:
@@ -393,6 +404,42 @@ def menu(menu_type):
 		text(str(player_pkm.stat["HP"]).rjust(3), [120,80])
 		draw_hp("PLAYER")
 
+	elif menu_type == "ITEM":
+		screen.blit(textbox, [0,96])
+		screen.blit(textbox_item, [0, 0])
+		
+		pygame.display.flip()
+		selecting = True
+		while selecting:
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT:
+					sys.exit()
+				elif event.type == pygame.KEYDOWN:
+					if event.key == pygame.K_ESCAPE:
+						sys.exit()
+					elif event.key in a_keys:
+						choice = "BACK"
+						selecting = False
+						break
+					elif event.key in b_keys:
+						choice = "BACK"
+						selecting = False
+						break
+		screen.fill(palette_light)
+		screen.blit(opponent_hud, [0,0])
+		screen.blit(opponent_pkm.sprite, [94, 0])
+		text(opponent_pkm.name, [8,0])
+		text(str(opponent_pkm.level), [40,8])
+		draw_hp("OPPONENT")
+		screen.blit(player_hud, [0,0])
+		text(player_pkm.name, [80,56])
+		text(str(player_pkm.level), [120,64])
+		text(str(player_pkm.hp).rjust(3), [88,80])
+		text(str(player_pkm.stat["HP"]).rjust(3), [120,80])
+		draw_hp("PLAYER")
+		screen.blit(player_pkm.sprite, [2,32])
+		
+		
 	return choice
 
 			
@@ -435,8 +482,10 @@ player_hud = pygame.image.load("img/player_hud.png")
 textbox_battlemenu = pygame.image.load("img/textbox_02.png")
 textbox_fight = pygame.image.load("img/textbox_fight.png")
 textbox_type = pygame.image.load("img/textbox_type.png")
+textbox_item = pygame.image.load("img/textbox_item.png")
 
 move_cursor = 0 # The cursor remains on the last selected move in the actual game
+mainmenu_cursor = [0,0]
 '''
 screen.blit(battle_intro, [0,0])
 
@@ -477,9 +526,15 @@ while True:
 
 	in_menu = True
 	while in_menu:
-		menu_sel = menu("MAIN")
+		menu_sel = menu("MAIN", mainmenu_cursor)
 		if menu_sel == "FIGHT":
+			mainmenu_cursor = [0,0]
 			menu_sel = menu("FIGHT")
+			if menu_sel != "BACK":
+				in_menu = False
+		elif menu_sel == "ITEM":
+			menu_sel = menu("ITEM")
+			mainmenu_cursor = [0,1]
 			if menu_sel != "BACK":
 				in_menu = False
 
