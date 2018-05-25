@@ -16,7 +16,7 @@ effect_message = {"FRZ":"{} was frozen solid!","BRN":"{} was burned!","PSN":"{} 
 effect_message2 = {"FRZ":"frozen","BRN":"burned","PSN":"poisoned","SLP":"asleep","PAR":"paralyzed"}
 
 multiturns = {'SKY ATTACK':'{} is glowing!','SKULL BASH':'{} lowered its head!','SOLARBEAM':'{} took in sunlight!'}
-def dialogue(string):
+def dialogue(string, auto = False):
 	'''Prints a message one character at a time'''
 	for char in string:
 		if char == "~":
@@ -33,6 +33,9 @@ def dialogue(string):
 			
 	print()
 
+def atk_sound(effectiveness):
+	'''Used with PyGame version'''
+	pass
 
 def deal_damage(target, damage):
 	'''Lowers the HP of the Pokemon. The Pygame version overrides this with its own function in order to animate.'''
@@ -438,11 +441,13 @@ class Pokemon:
 		
 		
 		elif accuracy_check(self, target, move):
-			dialogue("{} used {}!".format(self.name, move.name))
+			dialogue("{} used {}!".format(self.name, move.name), True)
+
 			if move.category != "STATUS":
+				crit = False
 				level = self.level
 				if crit_check(self):    
-					dialogue("Critical hit!")
+					crit = True
 					level = level * 2
 				if move.category == "PHYSICAL":
 					if BRN:
@@ -462,8 +467,10 @@ class Pokemon:
 				type_eff = get_matchup(move.type, target.type1, target.type2)
 
 				calc_damage = int((((((2*level)//5+2)*pwr*atk//tdef)//50+2)*rand)//255*STAB*type_eff)
-
+				atk_sound(type_eff)
 				deal_damage(target, calc_damage)
+				if crit:
+					dialogue("Critical hit!", True)
 				if move.status_effect in ['ATK','DEF','SPD','SPC']:
 					if probability_check(move.probability):
 						if target.statmod[move.status_effect] > -6:

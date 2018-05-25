@@ -5,81 +5,89 @@ a_keys = [pygame.K_SPACE, pygame.K_RETURN, pygame.K_KP_ENTER]
 b_keys = [pygame.K_BACKSPACE]
 
 
-def dialogue(string):
+def dialogue(string, auto = False):
 	'''Prints a message one character at a time'''
+	if auto:
+		dialogue_auto(string)
+	else:
 
-	screen.blit(textbox, [0, 96])
-	pygame.display.flip()
+		screen.blit(textbox, [0, 96])
+		pygame.display.flip()
 
-	lines = textwrap.fill(string, width=16).splitlines()
-	for line_num in range(len(lines)):
-		i = 1
-		if line_num == 0:
-			for char in lines[line_num]:
-				if char != ' ':
-					screen.blit(font_chars[char], [8*i, 112])
-					pygame.display.flip()
-				i += 1
-				pygame.time.delay(50)
-		else:
-			if line_num >= 2:
-				screen.blit(textbox, [0, 96])
-				i = 1
-				for char in lines[line_num-2]:
-					if char != ' ':
-						screen.blit(font_chars[char], [8 * i, 104])
-					i += 1
-
-				i = 1
-				for char in lines[line_num-1]:
-					if char != ' ':
-						screen.blit(font_chars[char], [8 * i, 120])
-					i += 1
-
-				pygame.display.flip()
-				pygame.time.delay(50)
-				screen.blit(textbox, [0, 96])
-
-				i = 1
-				for char in lines[line_num-1]:
-					if char != ' ':
-						screen.blit(font_chars[char], [8 * i, 112])
-					i += 1
-				pygame.display.flip()
-
-
+		lines = textwrap.fill(string, width=16).splitlines()
+		for line_num in range(len(lines)):
 			i = 1
-			for char in lines[line_num]:
-				if char != ' ':
-					screen.blit(font_chars[char], [8*i, 128])
+			if line_num == 0:
+				for char in lines[line_num]:
+					if char != ' ':
+						screen.blit(font_chars[char], [8*i, 112])
+						pygame.display.flip()
+					i += 1
+					pygame.time.delay(50)
+			else:
+				if line_num >= 2:
+					screen.blit(textbox, [0, 96])
+					i = 1
+					for char in lines[line_num-2]:
+						if char != ' ':
+							screen.blit(font_chars[char], [8 * i, 104])
+						i += 1
+
+					i = 1
+					for char in lines[line_num-1]:
+						if char != ' ':
+							screen.blit(font_chars[char], [8 * i, 120])
+						i += 1
+
 					pygame.display.flip()
-				i += 1
-				pygame.time.delay(50)
+					pygame.time.delay(50)
+					screen.blit(textbox, [0, 96])
+
+					i = 1
+					for char in lines[line_num-1]:
+						if char != ' ':
+							screen.blit(font_chars[char], [8 * i, 112])
+						i += 1
+					pygame.display.flip()
 
 
-		if len(lines) == 1 or (len(lines) > 1 and line_num > 0):
-			pygame.event.clear()
-			cursor_count = 0
-			advance_text = False
-			while not advance_text:
-				if cursor_count == 50:
-					screen.blit(font_chars[" "], [144, 128])
-					pygame.display.flip()
-				elif cursor_count == 0 or cursor_count == 100:
-					screen.blit(cursor_down, [144, 128])
-					pygame.display.flip()
-					cursor_count = 0
-				cursor_count += 1
-				for event in pygame.event.get():
-					if event.type == pygame.QUIT:
-						sys.exit()
-					elif event.type == pygame.KEYDOWN:
-						if event.key in a_keys:
-							advance_text = True
-				pygame.time.delay(10)
+				i = 1
+				for char in lines[line_num]:
+					if char != ' ':
+						screen.blit(font_chars[char], [8*i, 128])
+						pygame.display.flip()
+					i += 1
+					pygame.time.delay(50)
 
-	screen.blit(textbox, [0, 96])
-	pygame.display.flip()
+
+			if len(lines) == 1 or (len(lines) > 1 and line_num > 0):
+				pygame.event.clear()
+				cursor_count = 0
+				advance_text = False
+				while not advance_text:
+					checkfor_mus()
+					if cursor_count == 50:
+						screen.blit(font_chars[" "], [144, 128])
+						pygame.display.flip()
+					elif cursor_count == 0 or cursor_count == 100:
+						screen.blit(cursor_down, [144, 128])
+						pygame.display.flip()
+						cursor_count = 0
+					cursor_count += 1
+					for event in pygame.event.get():
+						if event.type == pygame.QUIT:
+							sys.exit()
+						elif event.type == pygame.KEYDOWN:
+
+							if event.key == pygame.K_ESCAPE:
+								sys.exit()
+							if event.key in a_keys:
+								cmus_sfx.play(sfx_cursor)
+								advance_text = True
+					pygame.time.delay(10)
+
+		screen.blit(textbox, [0, 96])
+		pygame.display.flip()
 
 def dialogue_auto(string):
 	'''dialoogue function, but it doesn't require the user to press any button to advance'''
@@ -138,6 +146,13 @@ def text(string, position):
 			screen.blit(font_chars[char], [8 * i + position[0], position[1]])
 		i += 1
 
+def atk_sound(effectiveness):
+	if effectiveness < 1:
+		cmus_sfx.play(sfx_weakhit)
+	elif effectiveness > 1:
+		cmus_sfx.play(sfx_stronghit)
+	else:
+		cmus_sfx.play(sfx_normalhit)
 
 def draw_hp(target):
 	if target == "PLAYER":
@@ -173,14 +188,22 @@ def deal_damage(target, damage):
 			pygame.time.delay(100)
 			
 		for i in range(old_bar - new_bar):
+			checkfor_mus()
 			pygame.draw.rect(screen, palette_light, [96, 75, 48, 2], 0)
 			pygame.draw.rect(screen, palette_dark, [96, 75, old_bar-i, 2], 0)
 			pygame.draw.rect(screen, palette_light, [88, 80, 24, 8], 0)
 			text(str(int(old_hp - ((old_hp - player_pkm.hp)/(old_bar-new_bar)*i))).rjust(3), [88, 80])
 			pygame.display.flip()
 			pygame.time.delay(500//(old_hp - target.hp))
+		if int(48 * (player_pkm.hp / player_pkm.stat["HP"])) < 10 and player_pkm.hp != 0:
+			cmus_pulse.set_volume(0)
+			cmus_beep.play(sfx_lowhealth, loops = -1)
+		else:
+			cmus_beep.stop()
+			cmus_pulse.set_volume(0.50)
 	else:
 		for i in range(10):
+			checkfor_mus()
 			if i % 2 == 0:
 				pygame.draw.rect(screen, palette_light, [94, 0, 64, 56], 0)
 			else:
@@ -225,6 +248,9 @@ def animate_intro(player, opponent):
 
 	dialogue_auto("{} sent out {}!".format(opponent.name, opponent_pkm.name))
 	pygame.time.delay(250)
+	cmus_main.set_volume(0)
+	cmus_sfx.play(opponent_pkm.cry)
+	cmus_main.set_volume(0.50)
 	screen.blit(opponent_pkm.sprite, [94, 0])
 	pygame.display.flip()
 	pygame.time.delay(250)
@@ -250,9 +276,17 @@ def animate_intro(player, opponent):
 	draw_hp("PLAYER")
 	pygame.display.flip()
 	pygame.time.delay(250)
+	cmus_main.set_volume(0)
+	cmus_sfx.play(player_pkm.cry)
+	cmus_main.set_volume(0.50)
 	screen.blit(player_pkm.sprite, [2,32])
 	pygame.display.flip()
 	pygame.time.delay(250)
+
+def checkfor_mus():
+	if not cmus_main.get_busy():
+		cmus_main.play(mus_main, loops = -1)
+		cmus_pulse.play(mus_pulse, loops = -1)
 
 def menu(menu_type, cursor_start = [0,0]):
 	'''Handles the menu selection'''
@@ -266,7 +300,7 @@ def menu(menu_type, cursor_start = [0,0]):
 		pygame.display.flip()
 		selecting = True
 		while selecting:
-			
+			checkfor_mus()
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
 					sys.exit()
@@ -275,6 +309,7 @@ def menu(menu_type, cursor_start = [0,0]):
 					if event.key == pygame.K_ESCAPE:
 						sys.exit()
 					elif event.key in a_keys:
+						cmus_sfx.play(sfx_cursor)
 						if cursor_pos[0] + cursor_pos[1] == 2:
 							if battle_type == "TRAINER":
 								pygame.draw.rect(screen, palette_light, [0, 96, 160, 48], 0)
@@ -357,6 +392,7 @@ def menu(menu_type, cursor_start = [0,0]):
 		selecting = True
 
 		while selecting:
+			checkfor_mus()
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
 					sys.exit()
@@ -365,10 +401,12 @@ def menu(menu_type, cursor_start = [0,0]):
 					if event.key == pygame.K_ESCAPE:
 						sys.exit()
 					elif event.key in a_keys:
+						cmus_sfx.play(sfx_cursor)
 						choice = move_cursor
 						selecting = False
 						break
 					elif event.key in b_keys:
+						cmus_sfx.play(sfx_cursor)
 						choice = "BACK"
 						selecting = False
 						break
@@ -411,6 +449,7 @@ def menu(menu_type, cursor_start = [0,0]):
 		pygame.display.flip()
 		selecting = True
 		while selecting:
+			checkfor_mus()
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
 					sys.exit()
@@ -418,10 +457,12 @@ def menu(menu_type, cursor_start = [0,0]):
 					if event.key == pygame.K_ESCAPE:
 						sys.exit()
 					elif event.key in a_keys:
+						cmus_sfx.play(sfx_cursor)
 						choice = "BACK"
 						selecting = False
 						break
 					elif event.key in b_keys:
+						cmus_sfx.play(sfx_cursor)
 						choice = "BACK"
 						selecting = False
 						break
@@ -444,8 +485,17 @@ def menu(menu_type, cursor_start = [0,0]):
 
 			
 	
+	
+# POKEMON BATTLE PYGAME
+pygame.mixer.pre_init(22050, -16, 2, 1024)
+pygame.mixer.init()
+pygame.init()
+
+# Override pkmnpy's functions with version for PyGame
 pkmnpy.dialogue = dialogue
 pkmnpy.deal_damage = deal_damage
+pkmnpy.atk_sound = atk_sound
+
 font_chars = {}
 for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ!-1234567890":
 	font_chars[char] = pygame.image.load("img/font/{}.png".format(char))
@@ -468,7 +518,7 @@ bg_height = 144
 screen = pygame.display.set_mode([bg_width, bg_height])
 screen.fill(palette_light)
 
-
+# IMAGES
 battle_select = pygame.image.load("img/battle_01.png")
 battle_move_select = pygame.image.load("img/battle_02.png")
 battle_intro = pygame.image.load("img/demo_screen.png")
@@ -484,8 +534,29 @@ textbox_fight = pygame.image.load("img/textbox_fight.png")
 textbox_type = pygame.image.load("img/textbox_type.png")
 textbox_item = pygame.image.load("img/textbox_item.png")
 
+# MUSIC
+cmus_main = pygame.mixer.Channel(0)
+cmus_pulse = pygame.mixer.Channel(1)
+cmus_sfx = pygame.mixer.Channel(2)
+cmus_beep = pygame.mixer.Channel(3)
+
+cmus_main.set_volume(0.50)
+cmus_pulse.set_volume(0.50)
+cmus_sfx.set_volume(0.50)
+cmus_beep.set_volume(0.50)
+
+mus_intro = pygame.mixer.Sound("mus/trainer_intro.wav")
+mus_main = pygame.mixer.Sound("mus/trainer_battle_main.wav")
+mus_pulse = pygame.mixer.Sound("mus/trainer_battle_pulse.wav")
+sfx_cursor = pygame.mixer.Sound("sfx/cursor.wav")
+sfx_lowhealth = pygame.mixer.Sound("sfx/low_health.wav")
+sfx_weakhit = pygame.mixer.Sound("sfx/weakhit.wav")
+sfx_normalhit = pygame.mixer.Sound("sfx/normalhit.wav")
+sfx_stronghit = pygame.mixer.Sound("sfx/stronghit.wav")
+
+
 move_cursor = 0 # The cursor remains on the last selected move in the actual game
-mainmenu_cursor = [0,0]
+mainmenu_cursor = [0, 0]
 '''
 screen.blit(battle_intro, [0,0])
 
@@ -510,13 +581,20 @@ player_pkm = player.team[player.active_slot]
 opponent_pkm = opponent.team[opponent.active_slot]
 player_pkm.sprite = pygame.image.load("img/pkm/back/{}.png".format(player_pkm.name))
 opponent_pkm.sprite = pygame.image.load("img/pkm/front/{}.png".format(opponent_pkm.name))
+player_pkm.cry = pygame.mixer.Sound("sfx/cry/{}.wav".format(player_pkm.name.lower()))
+opponent_pkm.cry = pygame.mixer.Sound("sfx/cry/{}.wav".format(opponent_pkm.name.lower()))
+
+
+
+cmus_main.play(mus_intro)
+
 
 
 animate_intro(player, opponent)
 
 # BATTLE
 while True:
-
+	checkfor_mus()
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			sys.exit()
@@ -526,6 +604,7 @@ while True:
 
 	in_menu = True
 	while in_menu:
+		checkfor_mus()
 		menu_sel = menu("MAIN", mainmenu_cursor)
 		if menu_sel == "FIGHT":
 			mainmenu_cursor = [0,0]
