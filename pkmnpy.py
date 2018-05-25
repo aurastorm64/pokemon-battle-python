@@ -475,7 +475,7 @@ class Pokemon:
 					if probability_check(move.probability):
 						if target.statmod[move.status_effect] > -6:
 							target.statmod[move.status_effect] -= 1
-							dialogue("{}'s {} fell!".format(target.name, stat_abbreviation[move.status_effect]))
+							dialogue("{}~ {} fell!".format(target.name, stat_abbreviation[move.status_effect]))
 				elif move.status_effect in ['BRN','PAR','SLP','PSN','FRZ']:
 					if probability_check(move.probability):
 						if target.status_effect == move.status_effect:

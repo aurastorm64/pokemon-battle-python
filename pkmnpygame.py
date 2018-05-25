@@ -1,4 +1,4 @@
-import sys, pygame, pygame.color, textwrap, pkmnpy
+gotimport sys, pygame, pygame.color, textwrap, pkmnpy
 
 # The keys that are used as the A button on a GameBoy
 a_keys = [pygame.K_SPACE, pygame.K_RETURN, pygame.K_KP_ENTER]
@@ -137,6 +137,7 @@ def dialogue_auto(string):
 					pygame.display.flip()
 				i += 1
 				pygame.time.delay(50)
+	pygame.time.delay(250)
 
 def text(string, position):
 	'''Outputs text without any special effects. Does not update display.'''
@@ -157,15 +158,17 @@ def atk_sound(effectiveness):
 def draw_hp(target):
 	if target == "PLAYER":
 		pygame.draw.rect(screen, palette_light, [96,75,48,2],0)
-		bar_width = int(48 * (player_pkm.hp / player_pkm.stat["HP"]))
-		pygame.draw.rect(screen, palette_dark, [96, 75, bar_width, 2],0)
+		if player_pkm.hp != 0:
+			bar_width = int(48 * (player_pkm.hp / player_pkm.stat["HP"]))
+			pygame.draw.rect(screen, palette_dark, [96, 75, bar_width, 2],0)
 		pygame.draw.rect(screen, palette_light, [88, 80, 24, 8],0)
 		text(str(player_pkm.hp).rjust(3), [88, 80])
 
 	else:
 		pygame.draw.rect(screen, palette_light, [32, 19, 48, 2],0)
-		bar_width = int(48 * (opponent_pkm.hp / opponent_pkm.stat["HP"]))
-		pygame.draw.rect(screen, palette_dark, [32,19,bar_width,2],0)
+		if opponent_pkm.hp != 0:
+			bar_width = int(48 * (opponent_pkm.hp / opponent_pkm.stat["HP"]))
+			pygame.draw.rect(screen, palette_dark, [32,19,bar_width,2],0)
 
 
 def deal_damage(target, damage):
@@ -480,7 +483,43 @@ def menu(menu_type, cursor_start = [0,0]):
 		draw_hp("PLAYER")
 		screen.blit(player_pkm.sprite, [2,32])
 		
-		
+	elif menu_type == "SETUP":
+		text("Choose a POKeMON!", [8, 8])
+		text("BULBASAUR", [16, 24])
+		text("CHARMANDER", [16, 32])
+		text("SQUIRTLE", [16, 40])
+		text("PIKACHU", [16, 48])
+		cursor_pos = 0
+		choices = ["bulbasaur", "charmander", "squirtle", "pikachu"]
+		screen.blit(cursor_right, [8, 24+(cursor_pos*8)])
+		pygame.display.flip()
+		selecting = True
+		while selecting:
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT:
+					sys.exit()
+				elif event.type == pygame.KEYDOWN:
+					if event.key == pygame.K_ESCAPE:
+						sys.exit()
+					elif event.key == pygame.K_UP:
+						pygame.draw.rect(screen, palette_light, [8, 24+(cursor_pos*8), 8, 8], 0)
+						cursor_pos = (cursor_pos - 1) % 4
+						screen.blit(cursor_right, [8, 24+(cursor_pos*8)])
+						pygame.display.flip()
+					elif event.key == pygame.K_DOWN:
+						pygame.draw.rect(screen, palette_light, [8, 24+(cursor_pos*8), 8, 8], 0)
+						cursor_pos = (cursor_pos + 1) % 4
+						screen.blit(cursor_right, [8, 24+(cursor_pos*8)])
+						pygame.display.flip()
+					
+					elif event.key in a_keys:
+						cmus_sfx.play(sfx_cursor)
+						choice = choices[cursor_pos]
+						selecting = False
+						break
+					
+			
+			
 	return choice
 
 			
@@ -567,6 +606,11 @@ dialogue("THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG!")
 dialogue("The quick brown fox jumps over the lazy dog.")
 '''
 
+#Get Player's choice of Pokemon
+pygame.display.flip()
+player_choice = menu("SETUP")
+
+
 battle_type = "TRAINER"
 
 player = pkmnpy.Trainer("RED")
@@ -574,8 +618,9 @@ opponent = pkmnpy.Trainer("BLUE", "RIVAL")
 player.sprite = pygame.image.load("img/player.png")
 opponent.sprite = pygame.image.load("img/rival.png")
 
-player.team.append(pkmnpy.Pokemon("charmander"))
-opponent.team.append(pkmnpy.Pokemon("squirtle"))
+rival_matchup = {"charmander":"squirtle","bulbasaur":"charmander","squirtle":"bulbasaur","pikachu":"eevee","missingno":"eevee"}
+player.team.append(pkmnpy.Pokemon(player_choice))
+opponent.team.append(pkmnpy.Pokemon(rival_matchup[player_choice]))
 
 player_pkm = player.team[player.active_slot]
 opponent_pkm = opponent.team[opponent.active_slot]
@@ -588,8 +633,29 @@ opponent_pkm.cry = pygame.mixer.Sound("sfx/cry/{}.wav".format(opponent_pkm.name.
 
 cmus_main.play(mus_intro)
 
-
-
+for i in range(10):
+	screen.fill(palette_dark)
+	pygame.display.flip()
+	pygame.time.delay(50)
+	screen.fill(palette_meddark)
+	pygame.display.flip()
+	pygame.time.delay(50)
+	screen.fill(palette_medlight)
+	pygame.display.flip()
+	pygame.time.delay(50)
+	screen.fill(palette_light)
+	pygame.display.flip()
+	pygame.time.delay(50)
+	screen.fill(palette_medlight)
+	pygame.display.flip()
+	pygame.time.delay(50)
+	screen.fill(palette_meddark)
+	pygame.display.flip()
+	pygame.time.delay(50)
+	
+screen.fill(palette_light)
+pygame.display.flip()
+	
 animate_intro(player, opponent)
 
 # BATTLE
@@ -633,10 +699,10 @@ while True:
 			dialogue("{} was defeated!".format(opponent.name))
 			break
 
-		opponent_pkm.attack(player_pkm, opponent_pkm.move1)
+		pkmnpy.opponent_move(opponent_pkm, player_pkm)
 
 	else:
-		opponent_pkm.attack(player_pkm, opponent_pkm.move1)
+		pkmnpy.opponent_move(opponent_pkm, player_pkm)
 
 		if player_pkm.hp == 0:
 			dialogue("{} fainted!".format(player_pkm.name))
