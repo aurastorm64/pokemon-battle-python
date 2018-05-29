@@ -8,6 +8,6 @@ DEF:	0
 SPC:	6
 SPD:	29
 
-['WATER GUN',1]
-['WATER GUN',1]
-['SKY ATTACK',1]
+['WATER GUN',0]
+['WATER GUN',0]
+['SKY ATTACK',0]

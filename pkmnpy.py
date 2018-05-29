@@ -329,7 +329,7 @@ def player_turn(player_pkm):
 		burnt = False
 		
 	if can_attack:
-		if player_pkm.multiturn_move != None and player_pkm.multiturn == 1:
+		if player_pkm.multiturn_move is not None and player_pkm.multiturn == 1:
 			player_pkm.attack(opponent_pkm, player_pkm.multiturn_move, burnt)
 			player_pkm.multiturn_move = None
 			player_pkm.multiturn = 0
@@ -407,14 +407,14 @@ def opponent_move(user, target):
 
 
 class Pokemon:
-	def __init__(self, name):
+	def __init__(self, name, level=5):
 		pkm_data = get_pkm(name)
 					
 		self.name = pkm_data[0]
 		self.type1 = pkm_data[1]
 		self.type2 = pkm_data[2]
 		self.basestat = {"HP":pkm_data[4],"ATK":pkm_data[5],"DEF":pkm_data[6],"SPC":pkm_data[7],"SPD":pkm_data[8]}
-		self.level = 5
+		self.level = level
 		self.movenames = moves_for_level(pkm_data, self.level)
 
 		self.iv = {"ATK": random.randint(0, 15), "DEF": random.randint(0, 15), "SPD": random.randint(0, 15),"SPC": random.randint(0, 15)}

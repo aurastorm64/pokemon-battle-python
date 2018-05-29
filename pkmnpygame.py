@@ -1,4 +1,4 @@
-gotimport sys, pygame, pygame.color, textwrap, pkmnpy
+import sys, pygame, pygame.color, textwrap, pkmnpy
 
 # The keys that are used as the A button on a GameBoy
 a_keys = [pygame.K_SPACE, pygame.K_RETURN, pygame.K_KP_ENTER]
@@ -334,7 +334,7 @@ def menu(menu_type, cursor_start = [0,0]):
 							break
 						else:
 							pygame.draw.rect(screen, palette_light, [0, 96, 160, 48], 0)
-							dialogue("POKeMON menu not implemented yet.")
+							dialogue("POKéMON menu not implemented yet.")
 							
 							screen.blit(textbox_battlemenu, [0, 96])
 							pygame.draw.rect(screen, palette_light, [72, 112, 8, 8], 0)
@@ -405,6 +405,8 @@ def menu(menu_type, cursor_start = [0,0]):
 						sys.exit()
 					elif event.key in a_keys:
 						cmus_sfx.play(sfx_cursor)
+						if current_move.pp == 0:
+							dialogue("No PP left for this move!")
 						choice = move_cursor
 						selecting = False
 						break
@@ -489,9 +491,9 @@ def menu(menu_type, cursor_start = [0,0]):
 		text("CHARMANDER", [16, 32])
 		text("SQUIRTLE", [16, 40])
 		text("PIKACHU", [16, 48])
-		cursor_pos = 0
-		choices = ["bulbasaur", "charmander", "squirtle", "pikachu"]
-		screen.blit(cursor_right, [8, 24+(cursor_pos*8)])
+		cursor_pos = 1
+		choices = ["missingno","bulbasaur", "charmander", "squirtle", "pikachu"]
+		screen.blit(cursor_right, [8, 16+(cursor_pos*8)])
 		pygame.display.flip()
 		selecting = True
 		while selecting:
@@ -502,14 +504,19 @@ def menu(menu_type, cursor_start = [0,0]):
 					if event.key == pygame.K_ESCAPE:
 						sys.exit()
 					elif event.key == pygame.K_UP:
-						pygame.draw.rect(screen, palette_light, [8, 24+(cursor_pos*8), 8, 8], 0)
-						cursor_pos = (cursor_pos - 1) % 4
-						screen.blit(cursor_right, [8, 24+(cursor_pos*8)])
+						pygame.draw.rect(screen, palette_light, [8, 16+(cursor_pos*8), 8, 8], 0)
+						if cursor_pos == 1:
+							cursor_pos = 0
+						elif cursor_pos == 0:
+							cursor_pos = 4
+						else:
+							cursor_pos = ((cursor_pos - 1)-1) % 4 + 1
+						screen.blit(cursor_right, [8, 16+(cursor_pos*8)])
 						pygame.display.flip()
 					elif event.key == pygame.K_DOWN:
-						pygame.draw.rect(screen, palette_light, [8, 24+(cursor_pos*8), 8, 8], 0)
-						cursor_pos = (cursor_pos + 1) % 4
-						screen.blit(cursor_right, [8, 24+(cursor_pos*8)])
+						pygame.draw.rect(screen, palette_light, [8, 16+(cursor_pos*8), 8, 8], 0)
+						cursor_pos = ((cursor_pos + 1)-1) % 4 + 1
+						screen.blit(cursor_right, [8, 16+(cursor_pos*8)])
 						pygame.display.flip()
 					
 					elif event.key in a_keys:
@@ -522,9 +529,78 @@ def menu(menu_type, cursor_start = [0,0]):
 			
 	return choice
 
-			
-	
-	
+def animate_fainted(target):
+	if target == "OPPONENT":
+		for i in range(18):
+			pygame.draw.rect(screen, palette_light, [94, 0, 64, 72], 0)
+			screen.blit(opponent_pkm.sprite, [94, i*4])
+			pygame.draw.rect(screen, palette_light, [72, 56, 64, 88], 0)
+			pygame.draw.rect(screen, palette_light, [0, 96, 160, 48], 0)
+			screen.blit(player_hud, [0, 0])
+			text(player_pkm.name, [80, 56])
+			text(str(player_pkm.level), [120, 64])
+			text(str(player_pkm.hp).rjust(3), [88, 80])
+			text(str(player_pkm.stat["HP"]).rjust(3), [120, 80])
+			draw_hp("PLAYER")
+			screen.blit(textbox, [0, 96])
+			lines = textwrap.fill("{} fainted!".format(opponent_pkm.name), width=16).splitlines()
+			text(lines[0], [8, 112])
+			if len(lines) > 1:
+				text(lines[1], [8, 128])
+			pygame.display.flip()
+			pygame.time.delay(10)
+		pygame.draw.rect(screen, palette_light, [0, 0, 96, 32], 0)
+		pygame.display.flip()
+	else:
+		for i in range(18):
+			pygame.draw.rect(screen, palette_light, [0, 32, 64, 64], 0)
+			screen.blit(player_pkm.sprite, [2, 32+i*4])
+			pygame.draw.rect(screen, palette_light, [0, 96, 160, 48], 0)
+			screen.blit(textbox, [0, 96])
+			lines = textwrap.fill("{} fainted!".format(player_pkm.name), width=16).splitlines()
+			text(lines[0], [8, 112])
+			if len(lines) > 1:
+				text(lines[1], [8, 128])
+			pygame.display.flip()
+			pygame.time.delay(10)
+
+
+def blackout():
+	cmus_sfx.stop()
+	cmus_pulse.stop()
+	cmus_beep.stop()
+	cmus_main.stop()
+	for color in [palette_medlight, palette_meddark, palette_dark]:
+		screen.fill(color)
+		pygame.display.flip()
+		pygame.time.delay(100)
+	pygame.time.delay(500)
+
+def rival_defeat():
+	cmus_sfx.stop()
+	cmus_pulse.set_volume(0)
+	cmus_beep.stop()
+	cmus_main.set_volume(0)
+	cmus_beep.play(mus_victory)
+	dialogue("{} defeated {}!".format(player.name, opponent.name))
+	for i in range(0, 18):
+		pygame.draw.rect(screen, palette_light, [0, 0, 160, 96], 0)
+		screen.blit(opponent.sprite, [160-i*4, 0])
+		screen.blit(player_pkm.sprite, [2, 32])
+
+		screen.blit(player_hud, [0, 0])
+		text(player_pkm.name, [80, 56])
+		text(str(player_pkm.level), [120, 64])
+		text(str(player_pkm.hp).rjust(3), [88, 80])
+		text(str(player_pkm.stat["HP"]).rjust(3), [120, 80])
+		draw_hp("PLAYER")
+		pygame.display.flip()
+		pygame.time.delay(10)
+
+	dialogue("{}: WHAT? Unbelievable! I picked the wrong POKéMON!".format(opponent.name))
+
+
+
 # POKEMON BATTLE PYGAME
 pygame.mixer.pre_init(22050, -16, 2, 1024)
 pygame.mixer.init()
@@ -536,13 +612,15 @@ pkmnpy.deal_damage = deal_damage
 pkmnpy.atk_sound = atk_sound
 
 font_chars = {}
-for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ!-1234567890":
+for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ!-1234567890é":
 	font_chars[char] = pygame.image.load("img/font/{}.png".format(char))
 for char in "abcdefghijklmnopqrstuvwxyz":
 	font_chars[char] = pygame.image.load("img/font/{}l.png".format(char))
 font_chars[" "] = pygame.image.load("img/font/space.png")
 font_chars["."] = pygame.image.load("img/font/period.png")
 font_chars["~"] = pygame.image.load("img/font/apos_s.png")
+font_chars[":"] = pygame.image.load("img/font/colon.png")
+font_chars["?"] = pygame.image.load("img/font/question.png")
 
 
 
@@ -587,6 +665,7 @@ cmus_beep.set_volume(0.50)
 mus_intro = pygame.mixer.Sound("mus/trainer_intro.wav")
 mus_main = pygame.mixer.Sound("mus/trainer_battle_main.wav")
 mus_pulse = pygame.mixer.Sound("mus/trainer_battle_pulse.wav")
+mus_victory = pygame.mixer.Sound("mus/defeated.wav")
 sfx_cursor = pygame.mixer.Sound("sfx/cursor.wav")
 sfx_lowhealth = pygame.mixer.Sound("sfx/low_health.wav")
 sfx_weakhit = pygame.mixer.Sound("sfx/weakhit.wav")
@@ -619,14 +698,23 @@ player.sprite = pygame.image.load("img/player.png")
 opponent.sprite = pygame.image.load("img/rival.png")
 
 rival_matchup = {"charmander":"squirtle","bulbasaur":"charmander","squirtle":"bulbasaur","pikachu":"eevee","missingno":"eevee"}
-player.team.append(pkmnpy.Pokemon(player_choice))
+if player_choice == "missingno":
+	player.team.append(pkmnpy.Pokemon(player_choice, 137))
+else:
+	player.team.append(pkmnpy.Pokemon(player_choice))
 opponent.team.append(pkmnpy.Pokemon(rival_matchup[player_choice]))
 
 player_pkm = player.team[player.active_slot]
 opponent_pkm = opponent.team[opponent.active_slot]
-player_pkm.sprite = pygame.image.load("img/pkm/back/{}.png".format(player_pkm.name))
-opponent_pkm.sprite = pygame.image.load("img/pkm/front/{}.png".format(opponent_pkm.name))
-player_pkm.cry = pygame.mixer.Sound("sfx/cry/{}.wav".format(player_pkm.name.lower()))
+if player_pkm.name == "MISSINGNO.":
+	player_pkm.sprite = pygame.image.load("img/pkm/back/missingno.png")
+else:
+	player_pkm.sprite = pygame.image.load("img/pkm/back/{}.png".format(player_pkm.name.lower()))
+opponent_pkm.sprite = pygame.image.load("img/pkm/front/{}.png".format(opponent_pkm.name.lower()))
+if player_pkm.name != "MISSINGNO.":
+	player_pkm.cry = pygame.mixer.Sound("sfx/cry/{}.wav".format(player_pkm.name.lower()))
+else:
+	player_pkm.cry = pygame.mixer.Sound("sfx/cry/missingno.wav")
 opponent_pkm.cry = pygame.mixer.Sound("sfx/cry/{}.wav".format(opponent_pkm.name.lower()))
 
 
@@ -668,23 +756,27 @@ while True:
 			if event.key == pygame.K_ESCAPE:
 				sys.exit()
 
-	in_menu = True
-	while in_menu:
-		checkfor_mus()
-		menu_sel = menu("MAIN", mainmenu_cursor)
-		if menu_sel == "FIGHT":
-			mainmenu_cursor = [0,0]
-			menu_sel = menu("FIGHT")
-			if menu_sel != "BACK":
-				in_menu = False
-		elif menu_sel == "ITEM":
-			menu_sel = menu("ITEM")
-			mainmenu_cursor = [0,1]
-			if menu_sel != "BACK":
-				in_menu = False
+	if player_pkm.multiturn_move is not None:
+		menu_sel = 9
+
+	else:
+		in_menu = True
+		while in_menu:
+			checkfor_mus()
+			menu_sel = menu("MAIN", mainmenu_cursor)
+			if menu_sel == "FIGHT":
+				mainmenu_cursor = [0,0]
+				menu_sel = menu("FIGHT")
+				if menu_sel != "BACK":
+					in_menu = False
+			elif menu_sel == "ITEM":
+				menu_sel = menu("ITEM")
+				mainmenu_cursor = [0,1]
+				if menu_sel != "BACK":
+					in_menu = False
 
 
-	if pkmnpy.calc_statmod(player_pkm.stat["SPD"], player_pkm.statmod["SPD"]) > pkmnpy.calc_statmod(opponent_pkm.stat["SPD"], opponent_pkm.statmod["SPD"]):
+	if pkmnpy.calc_statmod(player_pkm.stat["SPD"], player_pkm.statmod["SPD"]) >= pkmnpy.calc_statmod(opponent_pkm.stat["SPD"], opponent_pkm.statmod["SPD"]):
 		if	menu_sel == 0:
 			player_pkm.attack(opponent_pkm, player_pkm.move1)
 		elif menu_sel == 1:
@@ -693,10 +785,16 @@ while True:
 			player_pkm.attack(opponent_pkm, player_pkm.move3)
 		elif menu_sel == 3:
 			player_pkm,attack(opponent_pkm, player_pkm.move4)
+		elif menu_sel == 9:
+			player_pkm.attack(opponent_pkm, player_pkm.multiturn_move)
+			player_pkm.multiturn_move = None
+			player_pkm.multiturn = 0
 
 		if opponent_pkm.hp == 0:
 			dialogue("{} fainted!".format(opponent_pkm.name))
-			dialogue("{} was defeated!".format(opponent.name))
+			animate_fainted("OPPONENT")
+			rival_defeat()
+			blackout()
 			break
 
 		pkmnpy.opponent_move(opponent_pkm, player_pkm)
@@ -706,8 +804,10 @@ while True:
 
 		if player_pkm.hp == 0:
 			dialogue("{} fainted!".format(player_pkm.name))
-			dialogue("{} is out of usable Pokemon!".format(player.name))
-			dialogue("{} blacked out!".format(player.name))
+			animate_fainted("PLAYER")
+			dialogue("{} is out of usable POKéMON!".format(player.name))
+			dialogue_auto("{} blacked out!".format(player.name))
+			blackout()
 			break
 
 		if menu_sel == 0:
@@ -718,16 +818,24 @@ while True:
 			player_pkm.attack(opponent_pkm, player_pkm.move3)
 		elif menu_sel == 3:
 			player_pkm, attack(opponent_pkm, player_pkm.move4)
+		elif menu_sel == 9:
+			player_pkm.attack(opponent_pkm, player_pkm.multiturn_move)
+			player_pkm.multiturn_move = None
+			player_pkm.multiturn = 0
 
 	if opponent_pkm.hp == 0:
 		dialogue("{} fainted!".format(opponent_pkm.name))
-		dialogue("{} was defeated!".format(opponent.name))
+		animate_fainted("OPPONENT")
+		rival_defeat()
+		blackout()
 		break
 
 	if player_pkm.hp == 0:
 		dialogue("{} fainted!".format(player_pkm.name))
-		dialogue("{} is out of usable Pokemon!".format(player.name))
-		dialogue("{} blacked out!".format(player.name))
+		animate_fainted("PLAYER")
+		dialogue("{} is out of usable POKéMON!".format(player.name))
+		dialogue_auto("{} blacked out!".format(player.name))
+		blackout()
 		break
 
 
