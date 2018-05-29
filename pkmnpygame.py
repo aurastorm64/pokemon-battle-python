@@ -1,4 +1,4 @@
-import sys, pygame, pygame.color, textwrap, pkmnpy
+import sys, pygame, pygame.color, textwrap, random, pkmnpy
 
 # The keys that are used as the A button on a GameBoy
 a_keys = [pygame.K_SPACE, pygame.K_RETURN, pygame.K_KP_ENTER]
@@ -700,9 +700,10 @@ opponent.sprite = pygame.image.load("img/rival.png")
 rival_matchup = {"charmander":"squirtle","bulbasaur":"charmander","squirtle":"bulbasaur","pikachu":"eevee","missingno":"eevee"}
 if player_choice == "missingno":
 	player.team.append(pkmnpy.Pokemon(player_choice, 137))
+	opponent.team.append(pkmnpy.Pokemon(random.choice(["charmander","squirtle","eevee","bulbasaur","pikachu"])))
 else:
 	player.team.append(pkmnpy.Pokemon(player_choice))
-opponent.team.append(pkmnpy.Pokemon(rival_matchup[player_choice]))
+	opponent.team.append(pkmnpy.Pokemon(rival_matchup[player_choice]))
 
 player_pkm = player.team[player.active_slot]
 opponent_pkm = opponent.team[opponent.active_slot]
