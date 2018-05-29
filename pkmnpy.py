@@ -544,7 +544,15 @@ class Attack:
 			self.name = atk_data[0]
 			self.category = atk_data[1]
 			self.type = atk_data[2]
+			
+						
 			if self.category != "STATUS":
+				#Turns out Gen I assigns categories per type, rather than per individual move.
+				if self.type in ["FIRE","WATER","ELECTRIC","GRASS","ICE","PSYCHIC","DRAGON"]:
+					self.category = "SPECIAL"
+				elif self.type in ["NORMAL","FIGHTING","POISON","GROUND","FLYING","BUG","ROCK","GHOST"]:
+					self.category = "PHYSICAL"
+					
 				self.damage = int(atk_data[3])
 				self.accuracy = int(atk_data[4])
 				self.maxpp = int(atk_data[5])
