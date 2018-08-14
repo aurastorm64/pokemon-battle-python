@@ -20,7 +20,6 @@ if __name__ == "__main__":
             has_click = False
         else:
             has_click = True
-            print("CLICK!")
     else:
         has_click = False
 
