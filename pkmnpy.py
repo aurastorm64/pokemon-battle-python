@@ -1,5 +1,5 @@
 '''POKeMON BATTLE TEST'''
-import random, sys, time, click, os
+import random, sys, time, os
 
 if os.name == 'nt':
 	is_windows = True
@@ -10,6 +10,19 @@ if sys.stdout.isatty():
 	in_terminal = True
 else:
 	in_terminal = False
+has_click = False    
+if __name__ == "__main__":    
+    if in_terminal and not is_windows:
+        try:
+             import click
+        except:
+            print("Module 'click' not installed. Using old cursor method.")
+            has_click = False
+        else:
+            has_click = True
+            print("CLICK!")
+    else:
+        has_click = False
 
 stat_abbreviation = {"ATK":"ATTACK", "DEF":"DEFENSE","SPD":"SPEED","SPC":"SPECIAL","ACC":"ACCURACY","EVS":"EVASION"}
 effect_message = {"FRZ":"{} was frozen solid!","BRN":"{} was burned!","PSN":"{} was poisoned!","SLP":"{} fell asleep!","PAR":"{} is paralyzed! It may not attack!"}
@@ -52,7 +65,7 @@ def choice_cursor(choices):
 	selection = 0
 
 	# Apparently the way the cursor selection is done isn't supported in Windows, so if running on Windows, the old selection will be used instead
-	if is_windows:
+	if not has_click:
 		for choice in choices_new:
 			print('{}, '.format(choice), end='')
 		print('\b\b ',end='')
